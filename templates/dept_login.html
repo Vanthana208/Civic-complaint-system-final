@@ -1,0 +1,40 @@
+{% extends "auth_base.html" %}
+
+{% block title %}Dept Portal | ComplaintHub{% endblock %}
+{% block heading %}Department Portal{% endblock %}
+{% block subheading %}Official access for municipal department staff.{% endblock %}
+
+{% block content %}
+<form method="POST">
+    <div class="form-group" style="margin-bottom: 20px;">
+        <label data-i18n="auth.email">Government Email</label>
+        <input type="email" name="email" class="input-control" style="width: 100%;" 
+               placeholder="dept@gov.in" required>
+    </div>
+
+    <div class="form-group" style="margin-bottom: 8px;">
+        <label data-i18n="auth.password">Portal Access Key</label>
+        <div style="position: relative;">
+            <input type="password" name="password" id="dept-password" 
+                   class="input-control" style="width: 100%;" placeholder="••••••••" required>
+            <span style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #94a3b8;" 
+                  onclick="togglePassword('dept-password')">
+                <i data-lucide="eye" size="18"></i>
+            </span>
+        </div>
+        <div style="text-align: right; margin-top: 8px;">
+            <a href="{{ url_for('forgot_password') }}" style="color: #0e7490; font-size: 0.85rem; font-weight: 700; text-decoration: none;">Forgot Password?</a>
+        </div>
+    </div>
+
+    <button type="submit" class="btn-auth" style="background: #0e7490;" data-i18n="auth.login">
+        Secure Portal Login
+    </button>
+</form>
+
+<div style="text-align: center; margin-top: 32px;">
+    <a href="{{ url_for('home') }}" style="color: #64748b; text-decoration: none; font-size: 0.85rem; font-weight: 600;" data-i18n="auth.back.home">
+        ← Return to Homepage
+    </a>
+</div>
+{% endblock %}

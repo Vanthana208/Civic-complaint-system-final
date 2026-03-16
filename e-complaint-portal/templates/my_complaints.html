@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}" data-lang="{{ current_lang }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Complaints | Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/user.css') }}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        /* Table Specific Styling */
+        .table-container {
+            background: #ffffff;
+            border-radius: 20px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            overflow: hidden; /* Keeps corners rounded */
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background-color: #f8fafc;
+            padding: 16px;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #1e293b;
+            vertical-align: middle;
+        }
+
+        tr:hover {
+            background-color: #f8fafc;
+        }
+
+        /* Image Thumbnails */
+        .img-preview {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        /* Status Pills */
+        .status-pill {
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .status-pending { background: #fef3c7; color: #92400e; }
+        .status-resolved { background: #d1fae5; color: #065f46; }
+
+        /* Verify Button */
+        .verify-btn {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+        .verify-btn:hover {
+            background: #4f46e5;
+            transform: translateY(-1px);
+        }
+
+        .verified-text {
+            color: #10b981;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <h2><i data-lucide="layout-grid"></i> Dashboard</h2>
+        <nav>
+            <a href="{{ url_for('dashboard') }}"><i data-lucide="home"></i> <span data-i18n="nav.dashboard">Overview</span></a>
+            <a href="{{ url_for('raise_complaint') }}"><i data-lucide="send"></i> <span data-i18n="nav.raise">Raise Complaint</span></a>
+            <a href="{{ url_for('my_complaints') }}" style="background: rgba(255, 255, 255, 0.2); color: white;">
+                <i data-lucide="list-checks"></i> <span data-i18n="nav.track">Track Complaints</span>
+            </a>
+            <a href="{{ url_for('user_leaderboard') }}"><i data-lucide="bar-chart-3"></i> <span data-i18n="nav.leaderboard">Leaderboard</span></a>
+        </nav>
+        <div id="lang-switcher" style="padding:8px 16px 0;"></div>
+        <div class="logout-btn">
+            <a href="{{ url_for('logout') }}"><i data-lucide="log-out"></i> <span data-i18n="nav.signout">Sign Out</span></a>
+        </div>
+    </aside>
+
+    <main class="main">
+        <section class="header-section">
+            <h1 data-i18n="mycomp.heading">My Complaints</h1>
+            <p><span data-i18n="mycomp.subheading">Track the progress of your reported issues in real-time.</span></p>
+        </section>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Complaint Details</th>
+                        <th>Location</th>
+                        <th>Evidence</th>
+                        <th>Resolution</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for comp in complaints %}
+                    <tr>
+                        <td><a href="{{ url_for('ticket_detail', complaint_id=comp[0]) }}" style="color:#4f46e5;font-weight:800;text-decoration:none;">#{{ comp[0] }}</a></td>
+                        <td>
+                            <div style="font-weight: 700; color: #0f172a;">{{ comp[2] }}</div>
+                            <div style="font-size: 0.8rem; color: #64748b; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                {{ comp[3] }}
+                            </div>
+                        </td>
+                        <td>{{ comp[4] }}</td>
+                        <td>
+                            {% if comp[5] %}
+                            <img src="{{ url_for('static', filename='uploads/' ~ comp[5]) }}" class="img-preview">
+                            {% else %}
+                            <span style="color: #cbd5e1;"><span data-i18n="mycomp.no.image">No Image</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if comp[12] %}
+                            <img src="{{ url_for('static', filename='uploads/' ~ comp[12]) }}" class="img-preview">
+                            {% else %}
+                            <span style="color: #cbd5e1; font-style: italic;">Pending...</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="status-pill {% if comp[9] == 'resolved' %}status-resolved{% else %}status-pending{% endif %}">
+                                {{ comp[9]|capitalize }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if comp[9] == 'resolved' and comp[10] != 'verified' %}
+                            <form method="POST" action="{{ url_for('verify_complaint', complaint_id=comp[0]) }}">
+                                <button type="submit" class="verify-btn" data-i18n="mycomp.verify">Verify Now</button>
+                            </form>
+                            {% elif comp[10] == 'verified' %}
+                            <span class="verified-text"><i data-lucide="check-circle-2" size="16"></i> Verified</span>
+                            {% else %}
+                            <span style="color: #94a3b8;">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script>
+      lucide.createIcons();
+    </script>
+<script src="{{ url_for('static', filename='js/lang.js') }}"></script>
+</body>
+</html>

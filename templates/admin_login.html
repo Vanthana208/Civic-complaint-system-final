@@ -1,0 +1,37 @@
+{% extends "auth_base.html" %}
+
+{% block title %}Admin Access | ComplaintHub{% endblock %}
+{% block heading %}<span style="color: #475569;">Restricted</span> Access{% endblock %}
+{% block subheading %}Please enter your administrator credentials.{% endblock %}
+
+{% block content %}
+<form method="POST">
+    <div class="form-group" style="margin-bottom: 20px;">
+        <label data-i18n="auth.admin.user">Staff ID / Username</label>
+        <input type="text" name="username" class="input-control" style="width: 100%;" 
+               placeholder="admin_root" required>
+    </div>
+
+    <div class="form-group" style="margin-bottom: 8px;">
+        <label data-i18n="auth.password">Access Key</label>
+        <div style="position: relative;">
+            <input type="password" name="password" id="admin-password" 
+                   class="input-control" style="width: 100%;" placeholder="••••••••" required>
+            <span style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #94a3b8;" 
+                  onclick="togglePassword('admin-password')">
+                <i data-lucide="eye" size="18"></i>
+            </span>
+        </div>
+    </div>
+
+    <button type="submit" class="btn-auth" style="background: #1e293b;" data-i18n="auth.login">
+        Verify & Continue
+    </button>
+</form>
+
+<div style="text-align: center; margin-top: 32px;">
+    <a href="{{ url_for('home') }}" style="color: #64748b; text-decoration: none; font-size: 0.85rem; font-weight: 600;" data-i18n="auth.back.home">
+        ← Back to Homepage
+    </a>
+</div>
+{% endblock %}

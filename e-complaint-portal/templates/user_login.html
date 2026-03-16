@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+<head>
+    <title>Login</title>
+    <style>
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Segoe UI", sans-serif;
+        }
+
+        body {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #4f46e5, #3b82f6);
+        }
+
+        .login-container {
+            background: white;
+            padding: 40px;
+            width: 350px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            text-align: center;
+        }
+
+        .login-container h2 {
+            margin-bottom: 25px;
+            color: #111827;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+            text-align: left;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            font-size: 14px;
+            transition: 0.3s;
+        }
+
+        input:focus, select:focus {
+            border-color: #4f46e5;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            background-color: #4f46e5;
+            color: white;
+            font-size: 15px;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 5px;
+        }
+
+        button:hover {
+            background-color: #4338ca;
+        }
+
+        .register-text {
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        .register-text a {
+            color: #4f46e5;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .register-text a:hover {
+            text-decoration: underline;
+        }
+        .back{
+            text-decoration: none;
+            background-color: #4f46e5;
+            color: white;
+            font-size: 15px;
+            cursor: pointer;
+            transition: 0.3s;
+            border-radius: 8px;
+            padding: 10px 72px;
+        }
+        #_lang_bar{position:fixed;top:14px;right:18px;z-index:9999;}
+    </style>
+</head>
+<body>
+<div id="_lang_bar"><div id="lang-switcher"></div></div>
+
+<div class="login-container">
+    <h2 data-i18n="auth.login">Login</h2>
+
+    <form method="POST">
+
+        <div class="form-group">
+            <input type="email" name="email" data-i18n="auth.email" placeholder="Email Address" required>
+        </div>
+
+        <div class="form-group">
+            <input type="password" name="password" data-i18n="auth.password" placeholder="Password" required>
+        </div>
+
+        <div class="form-group">
+            <select name="role" required>
+                <option value="" data-i18n="auth.role">Select Role</option>
+                <option value="user" data-i18n="auth.role.user">User</option>
+                <option value="worker" data-i18n="auth.role.worker">Worker</option>
+            </select>
+        </div>
+
+        <button type="submit"data-i18n="auth.login">Login</button><br><br>
+        <a href="/" class="back"data-i18n="auth.back.home">Back to dashboard</a>
+
+    </form>
+
+    <div class="register-text">
+        <span data-i18n="auth.no.account">Don't have an account?</span>
+        <a href="/register"data-i18n="auth.register.here">Register here</a>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/lang.js') }}"></script>
+</body>
+</html>

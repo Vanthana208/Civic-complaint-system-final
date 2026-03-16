@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}" data-lang="{{ current_lang }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ComplaintHub - Smart E-Complaint Management System</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0A66C2;
+            --primary-dark: #084a8f;
+            --secondary: #FF6B35;
+            --accent: #00D9FF;
+            --dark: #1A1D29;
+            --darker: #0F1117;
+            --light: #F8F9FB;
+            --gray: #6B7280;
+            --success: #10B981;
+            --warning: #F59E0B;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--light);
+            color: var(--dark);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* ── Navigation ── */
+        nav {
+            position: fixed; top: 0; width: 100%;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.05);
+            animation: slideDown 0.5s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-100%); }
+            to   { transform: translateY(0); }
+        }
+
+        .nav-container {
+            max-width: 1400px; margin: 0 auto;
+            display: flex; justify-content: space-between;
+            align-items: center; padding: 1rem 3rem;
+        }
+
+        .logo {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.6rem; font-weight: 800;
+            color: var(--primary); text-decoration: none;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+
+        .logo-icon {
+            width: 38px; height: 38px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-weight: bold; font-size: 1.1rem;
+        }
+
+        .nav-links {
+            display: flex; gap: 1.8rem; align-items: center;
+        }
+
+        .nav-links a {
+            text-decoration: none; color: var(--dark);
+            font-weight: 500; transition: color 0.3s;
+            position: relative;
+        }
+
+        .nav-links a:hover { color: var(--primary); }
+
+        .nav-links a::after {
+            content: ''; position: absolute;
+            bottom: -4px; left: 0; width: 0; height: 2px;
+            background: var(--primary); transition: width 0.3s;
+        }
+
+        .nav-links a:hover::after { width: 100%; }
+
+        .auth-buttons { display: flex; gap: 0.7rem; align-items: center; }
+
+        /* Language switcher in nav — overrides sidebar style */
+        .nav-lang #lang-toggle-btn {
+            background: #f1f5f9 !important;
+            border: 1.5px solid #e2e8f0 !important;
+            color: var(--dark) !important;
+            padding: 7px 14px !important;
+            font-size: 0.82rem !important;
+        }
+
+        .nav-lang #lang-dropdown button { color: var(--dark) !important; }
+
+        .btn {
+            padding: 0.65rem 1.4rem; border-radius: 8px;
+            text-decoration: none; font-weight: 600;
+            transition: all 0.3s; cursor: pointer;
+            border: none; font-size: 0.9rem;
+        }
+
+        .btn-outline {
+            background: transparent; color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+
+        .btn-outline:hover {
+            background: var(--primary); color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(10,102,194,0.3);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(10,102,194,0.4);
+        }
+
+        .btn-dept {
+            background: linear-gradient(135deg, #0f172a, #0e7490);
+            color: white;
+        }
+
+        .btn-dept:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(14,116,144,0.4);
+        }
+
+        .btn-admin {
+            background: linear-gradient(135deg, #1f2937, #374151);
+            color: white;
+        }
+
+        .btn-admin:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(31,41,55,0.4);
+        }
+
+        /* ── Hero ── */
+        .hero {
+            min-height: 100vh;
+            display: flex; align-items: center;
+            background: linear-gradient(135deg, #0F1117 0%, #1A1D29 100%);
+            position: relative; overflow: hidden; padding-top: 80px;
+        }
+
+        .hero::before {
+            content: ''; position: absolute;
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(0,217,255,0.15) 0%, transparent 70%);
+            top: -200px; right: -200px;
+            animation: float 20s ease-in-out infinite;
+        }
+
+        .hero::after {
+            content: ''; position: absolute;
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(10,102,194,0.15) 0%, transparent 70%);
+            bottom: -100px; left: -100px;
+            animation: float 15s ease-in-out infinite reverse;
+        }
+
+        @keyframes float {
+            0%,100% { transform: translate(0,0); }
+            50%      { transform: translate(50px,50px); }
+        }
+
+        .hero-container {
+            max-width: 1400px; margin: 0 auto;
+            padding: 2rem 3rem;
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 4rem; align-items: center;
+            position: relative; z-index: 1;
+        }
+
+        .hero-content { animation: fadeInLeft 1s ease-out; }
+
+        @keyframes fadeInLeft {
+            from { opacity:0; transform: translateX(-50px); }
+            to   { opacity:1; transform: translateX(0); }
+        }
+
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(0,217,255,0.1);
+            border: 1px solid rgba(0,217,255,0.3);
+            padding: 6px 16px; border-radius: 20px;
+            color: var(--accent); font-size: 0.85rem;
+            font-weight: 600; margin-bottom: 24px;
+        }
+
+        .hero-content h1 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 3.2rem; font-weight: 800;
+            color: white; line-height: 1.15; margin-bottom: 20px;
+        }
+
+        .hero-content h1 span { color: var(--accent); }
+
+        .hero-content p {
+            color: rgba(255,255,255,0.7);
+            font-size: 1.1rem; margin-bottom: 36px;
+            max-width: 500px;
+        }
+
+        .hero-buttons { display: flex; gap: 16px; flex-wrap: wrap; }
+
+        .hero-buttons .btn { padding: 0.9rem 1.8rem; font-size: 1rem; }
+
+        /* ── Portal cards (right side of hero) ── */
+        .portal-cards {
+            display: flex; flex-direction: column; gap: 16px;
+            animation: fadeInRight 1s ease-out 0.2s both;
+        }
+
+        @keyframes fadeInRight {
+            from { opacity:0; transform: translateX(50px); }
+            to   { opacity:1; transform: translateX(0); }
+        }
+
+        .portal-card {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 18px; padding: 24px 28px;
+            display: flex; align-items: center; gap: 18px;
+            text-decoration: none; color: white;
+            transition: all 0.3s;
+        }
+
+        .portal-card:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateX(8px);
+            border-color: rgba(255,255,255,0.25);
+        }
+
+        .portal-icon {
+            width: 52px; height: 52px; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.6rem; flex-shrink: 0;
+        }
+
+        .portal-icon.user  { background: rgba(79,70,229,0.25); border: 1px solid rgba(79,70,229,0.4); }
+        .portal-icon.dept  { background: rgba(14,116,144,0.25); border: 1px solid rgba(14,116,144,0.4); }
+        .portal-icon.admin { background: rgba(31,41,55,0.5);   border: 1px solid rgba(255,255,255,0.15); }
+
+        .portal-info .title { font-weight: 700; font-size: 1.05rem; }
+        .portal-info .desc  { opacity: 0.6; font-size: 0.85rem; margin-top: 3px; }
+
+        .portal-arrow { margin-left: auto; opacity: 0.4; font-size: 1.2rem; transition: 0.2s; }
+        .portal-card:hover .portal-arrow { opacity:1; transform: translateX(4px); }
+
+        /* ── Features ── */
+        .features {
+            padding: 100px 3rem;
+            max-width: 1400px; margin: 0 auto;
+        }
+
+        .section-header { text-align: center; margin-bottom: 60px; }
+        .section-badge {
+            display: inline-block; background: #EFF6FF; color: var(--primary);
+            padding: 6px 18px; border-radius: 20px;
+            font-size: 0.85rem; font-weight: 600; margin-bottom: 14px;
+        }
+
+        .section-header h2 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 2.4rem; font-weight: 700; margin-bottom: 12px;
+        }
+
+        .section-header p { color: var(--gray); font-size: 1.05rem; }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px,1fr));
+            gap: 24px;
+        }
+
+        .feature-card {
+            background: white; padding: 32px;
+            border-radius: 20px;
+            border: 1px solid #E5E7EB;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.04);
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+            border-color: var(--primary);
+        }
+
+        .feature-icon {
+            width: 56px; height: 56px; font-size: 1.6rem;
+            background: linear-gradient(135deg,#EFF6FF,#DBEAFE);
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .feature-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; }
+        .feature-card p  { color: var(--gray); font-size: 0.9rem; line-height: 1.65; }
+
+        /* ── How it works ── */
+        .how-it-works {
+            padding: 100px 3rem;
+            background: linear-gradient(135deg, #0F1117 0%, #1A1D29 100%);
+        }
+
+        .steps-container {
+            max-width: 1200px; margin: 0 auto;
+            display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
+            gap: 24px;
+        }
+
+        .step-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px; padding: 32px; text-align: center;
+            color: white; transition: 0.3s;
+        }
+
+        .step-card:hover {
+            background: rgba(255,255,255,0.08);
+            transform: translateY(-4px);
+        }
+
+        .step-number {
+            width: 52px; height: 52px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 14px; margin: 0 auto 20px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem; font-weight: 800; color: white;
+        }
+
+        .step-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 12px; }
+        .step-card p  { color: rgba(255,255,255,0.6); font-size: 0.88rem; }
+
+        /* ── Stats ── */
+        .stats { padding: 100px 3rem; }
+
+        .stats-grid {
+            max-width: 900px; margin: 0 auto;
+            display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr));
+            gap: 20px;
+        }
+
+        .stat-item {
+            text-align: center; padding: 36px 20px;
+            background: white; border-radius: 20px;
+            border: 1px solid #E5E7EB;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.04);
+        }
+
+        .stat-item-value {
+            font-family: 'Poppins',sans-serif;
+            font-size: 2.4rem; font-weight: 800;
+            color: var(--primary); margin-bottom: 8px;
+        }
+
+        .stat-item-label { color: var(--gray); font-size: 0.9rem; font-weight: 500; }
+
+        /* ── Footer ── */
+        footer {
+            background: var(--darker); color: rgba(255,255,255,0.7);
+            padding: 60px 3rem 30px;
+        }
+
+        .footer-container {
+            max-width: 1400px; margin: 0 auto;
+            display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 40px; margin-bottom: 50px;
+        }
+
+        .footer-brand h3 {
+            font-family: 'Poppins',sans-serif; font-size: 1.4rem;
+            color: white; margin-bottom: 12px;
+        }
+
+        .footer-brand p { font-size: 0.9rem; line-height: 1.7; margin-bottom: 20px; }
+
+        .social-links { display: flex; gap: 10px; }
+
+        .social-link {
+            width: 36px; height: 36px; border-radius: 8px;
+            background: rgba(255,255,255,0.1);
+            display: flex; align-items: center; justify-content: center;
+            color: white; text-decoration: none; font-size: 0.8rem;
+            transition: 0.3s;
+        }
+
+        .social-link:hover { background: var(--primary); }
+
+        .footer-column h4 { color: white; font-weight: 700; margin-bottom: 16px; }
+
+        .footer-column ul { list-style: none; }
+
+        .footer-column ul li { margin-bottom: 8px; }
+
+        .footer-column ul li a {
+            color: rgba(255,255,255,0.6); text-decoration: none;
+            font-size: 0.9rem; transition: 0.3s;
+        }
+
+        .footer-column ul li a:hover { color: white; }
+
+        .footer-bottom {
+            max-width: 1400px; margin: 0 auto;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            text-align: center; font-size: 0.85rem;
+        }
+
+        @media(max-width: 768px) {
+            .hero-container   { grid-template-columns: 1fr; gap: 2rem; }
+            .portal-cards     { display: none; }
+            .footer-container { grid-template-columns: 1fr; }
+            .nav-links        { display: none; }
+            .nav-container    { padding: 1rem 1.5rem; }
+        }
+    </style>
+
+<!-- ── Navigation ── -->
+<nav>
+    <div class="nav-container">
+        <a href="/" class="logo">
+            <div class="logo-icon">C</div>
+            ComplaintHub
+        </a>
+
+        <div class="nav-links">
+            <a href="#features"     data-i18n="nav.features">Features</a>
+            <a href="#how-it-works" data-i18n="nav.howworks">How it Works</a>
+            <a href="#contact"      data-i18n="nav.contact">Contact</a>
+        </div>
+
+        <div class="auth-buttons">
+            <!-- Language switcher — rebuilt by lang.js -->
+            <div id="lang-switcher" class="nav-lang"></div>
+
+            <a href="{{ url_for('login') }}"       class="btn btn-outline" data-i18n="nav.signin">Sign In</a>
+            <a href="{{ url_for('dept_login') }}"  class="btn btn-dept"    data-i18n="nav.dept">Dept Portal</a>
+            <a href="{{ url_for('admin_login') }}" class="btn btn-admin"   data-i18n="nav.admin">Admin</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ── Hero ── -->
+<section class="hero">
+    <div class="hero-container">
+        <div class="hero-content">
+            <div class="hero-badge">
+                🏙️ <span data-i18n="home.badge">Smart City Infrastructure</span>
+            </div>
+            <h1>
+                <span data-i18n="home.h1a">Report. Track.</span><br>
+                <span data-i18n="home.h1b">Resolve Together.</span>
+            </h1>
+            <p data-i18n="home.hero.p">
+                A citizen-first platform connecting communities with government
+                departments to fix public infrastructure issues — faster,
+                transparently, and with accountability.
+            </p>
+            <div class="hero-buttons">
+                <a href="{{ url_for('register') }}" class="btn btn-primary">
+                    <span data-i18n="home.cta.start">Get Started Free →</span>
+                </a>
+                <a href="#how-it-works" class="btn btn-outline"
+                   style="color:white;border-color:rgba(255,255,255,0.4);">
+                    <span data-i18n="home.cta.how">See How It Works</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Portal cards -->
+        <div class="portal-cards">
+            <a href="{{ url_for('login') }}" class="portal-card">
+                <div class="portal-icon user">👤</div>
+                <div class="portal-info">
+                    <div class="title" data-i18n="home.card.citizen.title">Citizen Portal</div>
+                    <div class="desc"  data-i18n="home.card.citizen.desc">Report issues, track your complaints & earn points</div>
+                </div>
+                <div class="portal-arrow">→</div>
+            </a>
+
+            <a href="{{ url_for('dept_login') }}" class="portal-card">
+                <div class="portal-icon dept">🏛️</div>
+                <div class="portal-info">
+                    <div class="title" data-i18n="home.card.dept.title">Department Portal</div>
+                    <div class="desc"  data-i18n="home.card.dept.desc">Pick complaints from the common bin & assign workers</div>
+                </div>
+                <div class="portal-arrow">→</div>
+            </a>
+
+            <a href="{{ url_for('admin_login') }}" class="portal-card">
+                <div class="portal-icon admin">⚙️</div>
+                <div class="portal-info">
+                    <div class="title" data-i18n="home.card.admin.title">Admin Dashboard</div>
+                    <div class="desc"  data-i18n="home.card.admin.desc">Oversee all activity, manage departments & users</div>
+                </div>
+                <div class="portal-arrow">→</div>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- ── Features ── -->
+<section class="features" id="features">
+    <div class="section-header">
+        <span class="section-badge" data-i18n="home.feat.badge">Features</span>
+        <h2 data-i18n="home.feat.title">Everything You Need</h2>
+        <p data-i18n="home.feat.sub">A complete platform for modern civic complaint management</p>
+    </div>
+    <div class="features-grid">
+        <div class="feature-card">
+            <div class="feature-icon">📍</div>
+            <h3 data-i18n="home.feat1.title">Geo-tagged Complaints</h3>
+            <p data-i18n="home.feat1.desc">Every complaint is pinned to its exact location so the right team can respond immediately.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">🏛️</div>
+            <h3 data-i18n="home.feat2.title">Departmental Routing</h3>
+            <p data-i18n="home.feat2.desc">Issues are automatically routed to the right government department based on category.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">🌐</div>
+            <h3 data-i18n="home.feat3.title">Multi-language Support</h3>
+            <p data-i18n="home.feat3.desc">Full support for English, தமிழ் (Tamil), and हिन्दी (Hindi) for wider accessibility.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">📸</div>
+            <h3 data-i18n="home.feat4.title">Photo Proof System</h3>
+            <p data-i18n="home.feat4.desc">Workers upload before/after photos. Citizens verify the resolution, ensuring accountability.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">🏆</div>
+            <h3 data-i18n="home.feat5.title">Citizen Rewards</h3>
+            <p data-i18n="home.feat5.desc">Active citizens earn points for verified complaints, visible on a community leaderboard.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">📊</div>
+            <h3 data-i18n="home.feat6.title">Real-time Dashboard</h3>
+            <p data-i18n="home.feat6.desc">Admins and departments get live stats on complaint volumes, resolution rates, and more.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ── How it Works ── -->
+<section class="how-it-works" id="how-it-works">
+    <div class="section-header">
+        <span class="section-badge" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.8);"
+              data-i18n="home.how.badge">Process</span>
+        <h2 style="color:white;" data-i18n="home.how.title">How It Works</h2>
+        <p style="color:rgba(255,255,255,0.6);" data-i18n="home.how.sub">
+            Simple, transparent workflow — from report to resolution
+        </p>
+    </div>
+    <div class="steps-container">
+        <div class="step-card">
+            <div class="step-number">1</div>
+            <h3 data-i18n="home.step1.title">Citizen Reports</h3>
+            <p data-i18n="home.step1.desc">Submit a complaint with a photo, location and category. It lands in the common bin immediately.</p>
+        </div>
+        <div class="step-card">
+            <div class="step-number">2</div>
+            <h3 data-i18n="home.step2.title">Department Claims</h3>
+            <p data-i18n="home.step2.desc">The relevant department picks up the complaint and assigns a field worker to the job.</p>
+        </div>
+        <div class="step-card">
+            <div class="step-number">3</div>
+            <h3 data-i18n="home.step3.title">Worker Resolves</h3>
+            <p data-i18n="home.step3.desc">The assigned worker fixes the issue and uploads a proof photo to mark it resolved.</p>
+        </div>
+        <div class="step-card">
+            <div class="step-number">4</div>
+            <h3 data-i18n="home.step4.title">Citizen Verifies</h3>
+            <p data-i18n="home.step4.desc">The reporter confirms the fix. The admin closes the ticket and rewards the citizen.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ── Stats ── -->
+<section class="stats">
+    <div class="section-header">
+        <span class="section-badge" data-i18n="home.stats.badge">Our Impact</span>
+        <h2 data-i18n="home.stats.title">Built for Scale</h2>
+        <p data-i18n="home.stats.sub">Designed to handle entire cities, one complaint at a time</p>
+    </div>
+    <div class="stats-grid">
+        <div class="stat-item">
+            <div class="stat-item-value">50K+</div>
+            <div class="stat-item-label" data-i18n="home.stat1">Active Users</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-item-value">98%</div>
+            <div class="stat-item-label" data-i18n="home.stat2">Resolution Rate</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-item-value">2.5h</div>
+            <div class="stat-item-label" data-i18n="home.stat3">Avg Response Time</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-item-value">20+</div>
+            <div class="stat-item-label" data-i18n="home.stat4">Departments Supported</div>
+        </div>
+    </div>
+</section>
+
+<!-- ── Footer ── -->
+<footer id="contact">
+    <div class="footer-container">
+        <div class="footer-brand">
+            <h3>ComplaintHub</h3>
+            <p data-i18n="home.footer.brand">Bridging citizens and government departments to build better cities together.</p>
+            <div class="social-links">
+                <a href="#" class="social-link">f</a>
+                <a href="#" class="social-link">t</a>
+                <a href="#" class="social-link">in</a>
+                <a href="#" class="social-link">ig</a>
+            </div>
+        </div>
+        <div class="footer-column">
+            <h4 data-i18n="home.footer.portals">Portals</h4>
+            <ul>
+                <li><a href="{{ url_for('login') }}"       data-i18n="home.footer.citizen">Citizen Login</a></li>
+                <li><a href="{{ url_for('register') }}"    data-i18n="auth.register">Register</a></li>
+                <li><a href="{{ url_for('dept_login') }}"  data-i18n="home.footer.dept">Department Login</a></li>
+                <li><a href="{{ url_for('admin_login') }}" data-i18n="home.footer.admin">Admin Login</a></li>
+            </ul>
+        </div>
+        <div class="footer-column">
+            <h4 data-i18n="home.footer.categories">Categories</h4>
+            <ul>
+                <li><a href="#" data-i18n="cat.streetlight">Street Lights</a></li>
+                <li><a href="#" data-i18n="cat.water">Water & Drainage</a></li>
+                <li><a href="#" data-i18n="cat.road">Roads</a></li>
+                <li><a href="#" data-i18n="cat.sanitation">Sanitation</a></li>
+            </ul>
+        </div>
+        <div class="footer-column">
+            <h4 data-i18n="home.footer.support">Support</h4>
+            <ul>
+                <li><a href="#" data-i18n="home.footer.help">Help Center</a></li>
+                <li><a href="#" data-i18n="nav.contact">Contact</a></li>
+                <li><a href="#" data-i18n="home.footer.privacy">Privacy Policy</a></li>
+                <li><a href="#" data-i18n="home.footer.terms">Terms</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <p data-i18n="home.footer.copy">&copy; 2026 ComplaintHub. All rights reserved.</p>
+    </div>
+</footer>
+
+<script>
+    /* Smooth scroll — only for real anchor links, not lang dropdown */
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+        a.addEventListener('click', e => {
+            const href = a.getAttribute('href');
+            if (href === '#') return;
+            const t = document.querySelector(href);
+            if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+        });
+    });
+
+    /* Navbar shadow on scroll */
+    window.addEventListener('scroll', () => {
+        const nav = document.querySelector('nav');
+        if (nav) nav.style.boxShadow = window.scrollY > 50
+            ? '0 4px 30px rgba(0,0,0,0.1)'
+            : '0 2px 20px rgba(0,0,0,0.05)';
+    });
+
+    /* Fade-in on scroll */
+    const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+            if (e.isIntersecting) {
+                e.target.style.opacity = '1';
+                e.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, { threshold: 0.1, rootMargin: '0px 0px -80px 0px' });
+
+    document.querySelectorAll('.feature-card, .step-card, .stat-item').forEach(el => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(30px)';
+        el.style.transition = 'opacity 0.55s ease, transform 0.55s ease';
+        io.observe(el);
+    });
+</script>
+
+<!-- lang.js MUST be last — it reads DOM and builds switcher -->
+<script src="{{ url_for('static', filename='js/lang.js') }}"></script>
+</body>
+</html>

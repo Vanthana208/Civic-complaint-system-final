@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ticket #{{ complaint[0] }} — Department View</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root { --primary:#0e7490; --sidebar-bg:#0f172a; --main-bg:#f1f5f9; --border:#e2e8f0; }
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:'Plus Jakarta Sans',sans-serif; background:var(--main-bg); display:flex; }
+
+.sidebar {
+  width:270px; min-height:100vh; background:var(--sidebar-bg);
+  color:white; position:fixed; display:flex; flex-direction:column;
+  box-shadow:4px 0 20px rgba(0,0,0,0.15); z-index:50;
+}
+.sidebar-header { padding:28px 24px 20px; border-bottom:1px solid rgba(255,255,255,0.07); }
+.sidebar-logo { display:flex; align-items:center; gap:12px; }
+.logo-icon { width:36px;height:36px;background:var(--primary);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem; }
+.sidebar-logo span { font-size:1rem;font-weight:700; }
+.nav-links { padding:16px 12px; flex-grow:1; }
+.nav-links a { color:#94a3b8;text-decoration:none;padding:11px 16px;border-radius:10px;font-weight:600;font-size:0.88rem;display:flex;align-items:center;gap:10px;transition:0.2s;margin-bottom:4px;display:block; }
+.nav-links a:hover { background:rgba(255,255,255,0.05);color:white; }
+.nav-links a.active { background:var(--primary);color:white; }
+.sidebar-footer { padding:14px 12px;border-top:1px solid rgba(255,255,255,0.07); }
+.sidebar-footer a { display:flex;align-items:center;gap:10px;padding:11px 16px;border-radius:10px;color:#f87171;text-decoration:none;font-weight:600;font-size:0.88rem;background:rgba(239,68,68,0.08); }
+#lang-switcher { padding:8px 12px 0; }
+
+.main { margin-left:270px; padding:36px; width:100%; }
+
+.back-link { display:inline-flex;align-items:center;gap:6px;color:var(--primary);font-weight:600;font-size:0.88rem;text-decoration:none;margin-bottom:20px; }
+.back-link:hover { text-decoration:underline; }
+
+/* Ticket Card */
+.ticket-card { background:white;border-radius:20px;border:1px solid var(--border);box-shadow:0 4px 20px rgba(0,0,0,0.05);overflow:hidden;max-width:800px; }
+
+.ticket-header {
+  background:linear-gradient(135deg,#0e7490,#0f172a);
+  color:white;padding:28px 32px;
+  display:flex;justify-content:space-between;align-items:flex-start;
+}
+.ticket-header .tid { font-size:0.85rem;opacity:0.7;font-weight:600;margin-bottom:6px; }
+.ticket-header h2 { font-size:1.4rem;font-weight:800; }
+.cat-pill { background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);padding:6px 14px;border-radius:20px;font-size:0.82rem;font-weight:700; }
+
+.ticket-body { padding:28px 32px; }
+
+/* Progress bar */
+.progress-bar { margin-bottom:28px; }
+.progress-bar .pb-title { font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#64748b;margin-bottom:14px; }
+.steps { display:flex;align-items:center; }
+.step { flex:1;display:flex;flex-direction:column;align-items:center;position:relative; }
+.step:not(:last-child)::after { content:'';position:absolute;top:17px;left:50%;width:100%;height:3px;background:#e2e8f0;z-index:0; }
+.step.done:not(:last-child)::after { background:#0e7490; }
+.step-dot { width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:800;background:#f1f5f9;color:#94a3b8;border:3px solid #e2e8f0;position:relative;z-index:1; }
+.step.done .step-dot { background:#0e7490;color:white;border-color:#0e7490; }
+.step.active .step-dot { background:white;color:#0e7490;border-color:#0e7490;box-shadow:0 0 0 4px rgba(14,116,144,0.15); }
+.step-lbl { font-size:0.68rem;font-weight:700;color:#94a3b8;margin-top:7px;text-align:center; }
+.step.done .step-lbl,.step.active .step-lbl { color:#0e7490; }
+
+/* Info */
+.info-grid { display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:22px; }
+.info-item label { display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#64748b;margin-bottom:5px; }
+.info-item span { font-size:0.93rem;color:#1e293b;font-weight:600; }
+
+.desc-box { background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:22px;font-size:0.93rem;color:#374151;line-height:1.65; }
+
+.images-row { display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:22px; }
+.img-box label { font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#64748b;display:block;margin-bottom:8px; }
+.img-box img { width:100%;border-radius:10px;border:1px solid var(--border); }
+.img-placeholder { background:#f8fafc;border:2px dashed #e2e8f0;border-radius:10px;height:110px;display:flex;align-items:center;justify-content:center;color:#cbd5e1;font-size:0.82rem; }
+
+/* Status badges */
+.badge { display:inline-block;padding:4px 12px;border-radius:20px;font-size:0.78rem;font-weight:700; }
+.s-pending     { background:#fef9c3;color:#854d0e; }
+.s-in_progress { background:#dbeafe;color:#1e40af; }
+.s-resolved    { background:#d1fae5;color:#065f46; }
+.s-genuine     { background:#d1fae5;color:#065f46; }
+.s-fake        { background:#fee2e2;color:#991b1b; }
+
+/* Assign form */
+.assign-box { background:#eff6ff;border:1px solid #bfdbfe;border-radius:14px;padding:20px 24px;margin-top:4px; }
+.assign-box h4 { font-size:0.9rem;font-weight:700;color:#1d4ed8;margin-bottom:14px; }
+.assign-form { display:flex;gap:10px;align-items:center; }
+.assign-form select { flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:0.88rem;background:#f8fafc; }
+.assign-btn { padding:10px 22px;background:#0e7490;color:white;border:none;border-radius:8px;font-weight:700;font-size:0.88rem;cursor:pointer;transition:0.2s; }
+.assign-btn:hover { background:#0c6580; }
+.assigned-info { background:#ecfdf5;border:1px solid #a7f3d0;border-radius:14px;padding:16px 20px;margin-top:4px;color:#065f46;font-weight:600;font-size:0.9rem; }
+
+.flash { padding:12px 16px;border-radius:10px;margin-bottom:18px;font-size:0.88rem; }
+.flash.success { background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0; }
+.flash.danger  { background:#fef2f2;color:#b91c1c;border:1px solid #fecaca; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">
+      <div class="logo-icon">🏛️</div>
+      <span>{{ session.get('dept_name','Department') }}</span>
+    </div>
+  </div>
+  <div class="nav-links">
+    <a href="{{ url_for('dept_dashboard') }}" data-i18n="dept.dashboard">📊 Dashboard</a>
+  </div>
+  <div id="lang-switcher"></div>
+  <div class="sidebar-footer">
+    <a href="{{ url_for('dept_logout') }}" data-i18n="dept.logout">🚪 Logout</a>
+  </div>
+</aside>
+
+<main class="main">
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat,msg in messages %}
+      <div class="flash {{ cat }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <a href="{{ url_for('dept_dashboard') }}" class="back-link">
+    ← <span data-i18n="ticket.back.dept">Back to Dashboard</span>
+  </a>
+
+  <div class="ticket-card">
+    <div class="ticket-header">
+      <div>
+        <div class="tid">🎫 Ticket #{{ complaint[0] }}</div>
+        <h2>{{ complaint[2] }}</h2>
+      </div>
+      <div>
+        <span class="cat-pill">
+          {% if complaint[5]=='streetlight' %}⚡ {% elif complaint[5]=='water' %}💧 {% elif complaint[5]=='road' %}🛣️ {% elif complaint[5]=='sanitation' %}🧹 {% else %}📦 {% endif %}
+          {{ complaint[5]|capitalize }}
+        </span>
+      </div>
+    </div>
+
+    <div class="ticket-body">
+
+      <!-- Progress -->
+      <div class="progress-bar">
+        <div class="pb-title" data-i18n="ticket.progress">Ticket Progress</div>
+        <div class="steps">
+          <div class="step done"><div class="step-dot">✓</div><div class="step-lbl" data-i18n="ticket.step1">Raised</div></div>
+          <div class="step {% if complaint[8] %}done{% else %}active{% endif %}">
+            <div class="step-dot">{% if complaint[8] %}✓{% else %}2{% endif %}</div>
+            <div class="step-lbl" data-i18n="ticket.step2">Assigned</div>
+          </div>
+          <div class="step {% if complaint[9] in ['in_progress','resolved'] %}done{% elif complaint[8] %}active{% endif %}">
+            <div class="step-dot">{% if complaint[9] in ['in_progress','resolved'] %}✓{% else %}3{% endif %}</div>
+            <div class="step-lbl" data-i18n="ticket.step3">In Progress</div>
+          </div>
+          <div class="step {% if complaint[9]=='resolved' %}done{% elif complaint[9]=='in_progress' %}active{% endif %}">
+            <div class="step-dot">{% if complaint[9]=='resolved' %}✓{% else %}4{% endif %}</div>
+            <div class="step-lbl" data-i18n="ticket.step4">Resolved</div>
+          </div>
+          <div class="step {% if complaint[10]=='verified' %}done{% elif complaint[9]=='resolved' %}active{% endif %}">
+            <div class="step-dot">{% if complaint[10]=='verified' %}✓{% else %}5{% endif %}</div>
+            <div class="step-lbl" data-i18n="ticket.step5">Verified</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Info grid -->
+      <div class="info-grid">
+        <div class="info-item">
+          <label data-i18n="ticket.status">Status</label>
+          <span class="badge s-{{ complaint[9] }}">{{ complaint[9]|replace('_',' ')|capitalize }}</span>
+        </div>
+        <div class="info-item">
+          <label data-i18n="ticket.reporter">Reported By</label>
+          <span>👤 {{ reporter }}</span>
+        </div>
+        <div class="info-item">
+          <label data-i18n="ticket.location">Location</label>
+          <span>📍 {{ complaint[4] }}</span>
+        </div>
+        <div class="info-item">
+          <label data-i18n="ticket.raised">Raised On</label>
+          <span>{{ complaint[13].strftime('%d %b %Y') if complaint[13] else '—' }}</span>
+        </div>
+        <div class="info-item">
+          <label data-i18n="ticket.worker">Assigned Worker</label>
+          <span>{{ worker_name }}</span>
+        </div>
+        <div class="info-item">
+          <label data-i18n="ticket.admin.verify">Admin Verification</label>
+          <span class="badge s-{{ complaint[11] or 'pending' }}">{{ (complaint[11] or 'Pending')|capitalize }}</span>
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div class="desc-box">
+        <strong style="font-size:0.72rem;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;" data-i18n="complaint.label.desc">Description</strong>
+        <p style="margin-top:8px;">{{ complaint[3] }}</p>
+      </div>
+
+      <!-- Images -->
+      <div class="images-row">
+        <div class="img-box">
+          <label data-i18n="ticket.evidence">Evidence Photo</label>
+          {% if complaint[6] %}
+            <img src="{{ url_for('static', filename='uploads/' ~ complaint[6]) }}">
+          {% else %}
+            <div class="img-placeholder">📷 <span data-i18n="mycomp.no.image">No Image</span></div>
+          {% endif %}
+        </div>
+        <div class="img-box">
+          <label data-i18n="ticket.resolved.photo">Resolution Photo</label>
+          {% if complaint[12] %}
+            <img src="{{ url_for('static', filename='uploads/' ~ complaint[12]) }}">
+          {% else %}
+            <div class="img-placeholder">⏳ <span data-i18n="ticket.pending.resolution">Pending...</span></div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Assign Worker (if not yet assigned) -->
+      {% if not complaint[8] %}
+      <div class="assign-box">
+        <h4 data-i18n="dept.assign.title">Assign a Worker to this Ticket</h4>
+        {% if free_workers %}
+        <form method="POST" action="{{ url_for('dept_assign_worker', complaint_id=complaint[0]) }}" class="assign-form">
+          <select name="worker_id" required>
+            <option value="" data-i18n="dept.assign.worker">Select Worker</option>
+            {% for w in free_workers %}
+            <option value="{{ w[0] }}">{{ w[1] }} ({{ w[2] }})</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="assign-btn" data-i18n="dept.assign.btn">Assign</button>
+        </form>
+        {% else %}
+        <p style="color:#92400e;font-size:0.88rem;" data-i18n="dept.no.workers">⚠️ No free workers available right now.</p>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="assigned-info">
+        ✅ <span data-i18n="dept.assigned.to">Worker assigned:</span> <strong>{{ worker_name }}</strong>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</main>
+
+<script src="{{ url_for('static', filename='js/lang.js') }}"></script>
+</body>
+</html>

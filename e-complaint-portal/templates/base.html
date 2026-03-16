@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}" data-lang="{{ current_lang }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dashboard | ComplaintHub{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --sidebar-bg: #1e293b;
+            --sidebar-hover: rgba(255, 255, 255, 0.1);
+            --header-height: 70px;
+        }
+
+        body {
+            display: flex;
+            min-height: 100vh;
+            background-color: var(--bg-main);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--sidebar-bg);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            transition: all 0.3s;
+            z-index: 1001;
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 800;
+            font-size: 1.2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 20px 10px;
+            overflow-y: auto;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            border-radius: 12px;
+            margin-bottom: 4px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background-color: var(--sidebar-hover);
+            color: white;
+        }
+
+        .sidebar-footer {
+            padding: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Main Content */
+        .main-wrapper {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .top-header {
+            height: var(--header-height);
+            background: white;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .content-area {
+            padding: 40px;
+            flex: 1;
+        }
+
+        .page-header {
+            margin-bottom: 30px;
+        }
+
+        .page-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .page-subtitle {
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Mobile Menu Toggle */
+        .mobile-toggle {
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-main);
+        }
+
+        @media (max-width: 1024px) {
+            .content-area { padding: 25px; }
+            .top-header { padding: 0 25px; }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.show {
+                transform: translateX(0);
+                width: 280px;
+            }
+            .main-wrapper {
+                margin-left: 0;
+            }
+            .mobile-toggle {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <i data-lucide="shield-check" style="color: #6366f1;"></i>
+            <span>ComplaintHub</span>
+        </div>
+        <div class="sidebar-nav">
+            {% block sidebar_nav %}{% endblock %}
+        </div>
+        <div class="sidebar-footer">
+            <div id="lang-switcher" style="margin-bottom: 15px;"></div>
+            <a href="{{ url_for('logout') }}" class="nav-item" style="color: #fca5a5;">
+                <i data-lucide="log-out"></i>
+                <span data-i18n="nav.signout">Sign Out</span>
+            </a>
+        </div>
+    </aside>
+
+    <div class="main-wrapper">
+        <header class="top-header">
+            <button class="mobile-toggle" onclick="toggleSidebar()">
+                <i data-lucide="menu"></i>
+            </button>
+            <div class="user-profile">
+                <span style="font-weight: 600; color: var(--text-main);">{{ session.get('username', 'User') }}</span>
+                <span style="font-size: 0.8rem; color: var(--text-muted); display: block; text-transform: capitalize;">{{ session.get('role', 'Member') }}</span>
+            </div>
+        </header>
+
+        <main class="content-area">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}" style="padding: 12px 16px; border-radius: 12px; margin-bottom: 20px; font-size: 0.9rem; display: flex; align-items: center; gap: 10px; background: {{ '#f0fdf4' if category == 'success' else '#fef2f2' }}; color: {{ '#15803d' if category == 'success' else '#b91c1c' }}; border: 1px solid {{ '#bbf7d0' if category == 'success' else '#fecaca' }};">
+                            <i data-lucide="{{ 'check-circle' if category == 'success' else 'alert-circle' }}"></i>
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="page-header">
+                {% block page_header %}
+                <h1 class="page-title">{% block heading %}{% endblock %}</h1>
+                <p class="page-subtitle">{% block subheading %}{% endblock %}</p>
+                {% endblock %}
+            </div>
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('show');
+        }
+
+        // Close sidebar on window resize if it was open
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                document.getElementById('sidebar').classList.remove('show');
+            }
+        });
+    </script>
+    <script src="{{ url_for('static', filename='js/lang.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

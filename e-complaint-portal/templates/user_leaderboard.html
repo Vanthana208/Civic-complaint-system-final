@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}" data-lang="{{ current_lang }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaderboard | Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/user.css') }}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        /* Specific Leaderboard Styles */
+        .leaderboard-container {
+            background: #ffffff;
+            border-radius: 24px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            max-width: 800px;
+        }
+
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .leaderboard-table th {
+            background: #f8fafc;
+            padding: 18px 24px;
+            text-align: left;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #64748b;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .leaderboard-table td {
+            padding: 18px 24px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+
+        /* Rank Badge Styling */
+        .rank-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            font-weight: 700;
+            font-size: 0.9rem;
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        /* Top 3 Stylings */
+        tr:nth-child(1) .rank-badge { background: #fef3c7; color: #d97706; border: 2px solid #fbbf24; } /* Gold */
+        tr:nth-child(2) .rank-badge { background: #f1f5f9; color: #475569; border: 2px solid #cbd5e1; } /* Silver */
+        tr:nth-child(3) .rank-badge { background: #ffedd5; color: #9a3412; border: 2px solid #fdba74; } /* Bronze */
+
+        .user-name {
+            font-weight: 600;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .points-badge {
+            background: #eef2ff;
+            color: #4f46e5;
+            padding: 6px 14px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            border: 1px solid #e0e7ff;
+        }
+
+        /* Trophies for top ranks */
+        .trophy-icon { width: 18px; height: 18px; }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <h2><i data-lucide="layout-grid"></i> Dashboard</h2>
+        <nav>
+            <a href="{{ url_for('dashboard') }}"><i data-lucide="home"></i> <span data-i18n="nav.dashboard">Overview</span></a>
+            <a href="{{ url_for('raise_complaint') }}"><i data-lucide="send"></i> <span data-i18n="nav.raise">Raise Complaint</span></a>
+            <a href="{{ url_for('my_complaints') }}"><i data-lucide="list-checks"></i> <span data-i18n="nav.track">Track Complaints</span></a>
+            <a href="#" style="background: rgba(255, 255, 255, 0.2); color: white;">
+                <i data-lucide="trophy"></i> Leaderboard
+            </a>
+        </nav>
+        <div id="lang-switcher" style="padding:8px 16px 0;"></div>
+        <div class="logout-btn">
+            <a href="{{ url_for('logout') }}"><i data-lucide="log-out"></i> <span data-i18n="nav.signout">Sign Out</span></a>
+        </div>
+    </aside>
+
+    <main class="main">
+        <section class="header-section">
+            <h1 data-i18n="lb.heading">Community Leaderboard</h1>
+            <p><span data-i18n="lb.subheading">Recognizing our most active citizens helping to improve our city.</span></p>
+        </section>
+
+        <div class="leaderboard-container">
+            <table class="leaderboard-table">
+                <thead>
+                    <tr>
+                        <th data-i18n="lb.rank">Rank</th>
+                        <th data-i18n="lb.contributor">Contributor</th>
+                        <th data-i18n="lb.points">Total Points</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in leaderboard %}
+                    <tr>
+                        <td>
+                            <div class="rank-badge">{{ loop.index }}</div>
+                        </td>
+                        <td>
+                            <div class="user-name">
+                                {{ user[0] }}
+                                {% if loop.index == 1 %}
+                                    <i data-lucide="crown" style="color: #fbbf24; fill: #fbbf24;"></i>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <span class="points-badge">{{ user[1] }} pts</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script>
+      lucide.createIcons();
+    </script>
+<script src="{{ url_for('static', filename='js/lang.js') }}"></script>
+</body>
+</html>

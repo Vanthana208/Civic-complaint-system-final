@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+<head>
+    <title>Leaderboard - Admin</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_panel.css') }}">
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+    <h2 data-i18n="admin.panel">Admin Panel</h2>
+    <a href="{{url_for('admin_dashboard')}}"data-i18n="admin.dashboard">Dashboard</a>
+    <a href="{{url_for('admin_complaints')}}"data-i18n="admin.complaints">Complaints</a>
+    <a href="{{url_for('admin_users')}}"data-i18n="admin.users">Users</a>
+    <a href="{{url_for('admin_add_workers')}}"data-i18n="admin.workers">Add Workers</a>
+    <a href="{{url_for('admin_leaderboard')}}" class="active"data-i18n="admin.leaderboard">Leaderboard</a>
+
+    <div id="lang-switcher" style="padding:8px 0 0;text-align:center;"></div>
+    <div class="logout-btn">
+        <a href="{{ url_for('admin_logout') }}"data-i18n="admin.logout">Logout</a>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="main">
+    <h2 class="page-title" data-i18n="admin.leaderboard">Leaderboard</h2>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th data-i18n="lb.rank">Rank</th>
+                    <th data-i18n="lb.contributor">User</th>
+                    <th data-i18n="lb.points">Points</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for user in leaderboard %}
+                <tr>
+                    <td>
+                        <span class="rank-badge">{{ loop.index }}</span>
+                    </td>
+                    <td>{{ user[0] }}</td>
+                    <td>
+                        <span class="badge points">{{ user[1] }}</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+
+        </table>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/lang.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+<head>
+    <title>Admin Complaints</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_panel.css') }}">
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+    <h2 data-i18n="admin.panel">Admin Panel</h2>
+    <a href="{{url_for('admin_dashboard')}}"data-i18n="admin.dashboard">Dashboard</a>
+    <a href="{{url_for('admin_complaints')}}" class="active"data-i18n="admin.complaints">Complaints</a>
+    <a href="{{url_for('admin_users')}}"data-i18n="admin.users">Users</a>
+    <a href="{{url_for('admin_add_workers')}}"data-i18n="admin.workers">Add Workers</a>
+    <a href="{{url_for('admin_leaderboard')}}"data-i18n="admin.leaderboard">Leaderboard</a>
+
+    <div id="lang-switcher" style="padding:8px 0 0;text-align:center;"></div>
+    <div class="logout-btn">
+        <a href="{{ url_for('admin_logout') }}"data-i18n="admin.logout">Logout</a>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="main">
+    <h2 class="page-title" data-i18n="admin.complaints">All Complaints</h2>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th data-i18n="admin.col.id">ID</th>
+                    <th data-i18n="admin.col.title">Issue Title</th>
+                    <th data-i18n="admin.col.user">User Name</th>
+                    <th data-i18n="admin.col.status">Status</th>
+                    <th data-i18n="admin.col.uverify">User Verification</th>
+                    <th data-i18n="admin.col.image">Resolved Image</th>
+                    <th data-i18n="admin.col.averify">Admin Verification</th>
+                    <th data-i18n="admin.col.action">Action</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for c in complaints %}
+                <tr>
+                    <td><a href="{{ url_for('admin_ticket_view', complaint_id=c[0]) }}" style="color:#4f46e5;font-weight:800;text-decoration:none;">#{{ c[0] }}</a></td>
+                    <td>{{ c[1] }}</td>
+                    <td>{{ c[2] }}</td>
+                    <td>
+                        <span class="badge status">{{ c[3] }}</span>
+                    </td>
+                    <td>{{ c[4] }}</td>
+                    <td>
+                        {% if c[5] %}
+                        <img src="{{ url_for('static', filename='uploads/' ~ c[5]) }}" class="resolved-img">
+                        {% else %}
+                        N/A
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge admin">{{ c[6] }}</span>
+                    </td>
+                    <td>
+                        {% if c[6] == 'pending' %}
+                            <a href="{{ url_for('admin_verify_complaint', complaint_id=c[0], action='genuine') }}" class="btn genuine" data-i18n="admin.action.genuine">Genuine</a>
+                            <a href="{{ url_for('admin_verify_complaint', complaint_id=c[0], action='fake') }}" class="btn fake" data-i18n="admin.action.fake">Fake</a>
+                        {% else %}
+                            <span class="verified-text"data-i18n="mycomp.verified">Verified</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+
+        </table>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/lang.js') }}"></script>
+</body>
+</html>

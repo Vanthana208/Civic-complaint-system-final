@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Leaderboard | Department Portal{% endblock %}
+
+{% block sidebar_nav %}
+<a href="{{ url_for('dept_dashboard') }}" class="nav-item">
+    <i data-lucide="layout-dashboard"></i>
+    <span data-i18n="nav.dashboard">Dashboard</span>
+</a>
+<a href="{{ url_for('dept_leaderboard') }}" class="nav-item active">
+    <i data-lucide="trophy"></i>
+    <span data-i18n="nav.leaderboard">Leaderboard</span>
+</a>
+{% endblock %}
+
+{% block heading %}Citizen Excellence{% endblock %}
+{% block subheading %}Celebrating our most active community members making a real difference.{% endblock %}
+
+{% block content %}
+<style>
+    .lb-card {
+        max-width: 900px;
+        padding: 0;
+        overflow: hidden;
+    }
+
+    .lb-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .lb-header {
+        background: #f8fafc;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .lb-header th {
+        padding: 20px 30px;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        letter-spacing: 0.05em;
+    }
+
+    .lb-row td {
+        padding: 24px 30px;
+        background: white;
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+    }
+
+    .lb-row:last-child td { border-bottom: none; }
+
+    .rank-cell {
+        width: 80px;
+    }
+
+    .rank-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 1rem;
+        background: #f1f5f9;
+        color: #475569;
+        border: 2px solid transparent;
+    }
+
+    .rank-1 .rank-circle { background: #fffbeb; color: #d97706; border-color: #fcd34d; box-shadow: 0 4px 12px rgba(217, 119, 6, 0.15); }
+    .rank-2 .rank-circle { background: #f8fafc; color: #475569; border-color: #cbd5e1; }
+    .rank-3 .rank-circle { background: #fff7ed; color: #9a3412; border-color: #fdba74; }
+
+    .user-profile {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .user-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+
+    .user-info .name {
+        font-weight: 700;
+        color: #1e293b;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .points-tag {
+        background: #eef2ff;
+        color: var(--primary);
+        padding: 8px 16px;
+        border-radius: 99px;
+        font-weight: 800;
+        font-size: 0.9rem;
+        border: 1px solid #e0e7ff;
+    }
+</style>
+
+<div class="lb-card glass-card">
+    <table class="lb-table">
+        <thead class="lb-header">
+            <tr>
+                <th class="rank-cell">Rank</th>
+                <th>Contributor</th>
+                <th style="text-align: right;">Total Impact Points</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in leaderboard %}
+            <tr class="lb-row rank-{{ loop.index if loop.index <= 3 else 'other' }}">
+                <td class="rank-cell">
+                    <div class="rank-circle">{{ loop.index }}</div>
+                </td>
+                <td>
+                    <div class="user-profile">
+                        <div class="user-avatar">
+                            {{ user[0][0]|upper }}
+                        </div>
+                        <div class="user-info">
+                            <div class="name">
+                                {{ user[0] }}
+                                {% if loop.index == 1 %}
+                                <i data-lucide="crown" style="color: #f59e0b; fill: #f59e0b;" size="18"></i>
+                                {% endif %}
+                            </div>
+                            {% if loop.index <= 3 %}
+                            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">
+                                Top {{ loop.index }} Contributor
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </td>
+                <td style="text-align: right;">
+                    <span class="points-tag">{{ user[1] }} XP</span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

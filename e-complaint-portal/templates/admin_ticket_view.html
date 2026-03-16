@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ticket #{{ complaint[0] }} — Admin View</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin_panel.css') }}">
+<style>
+.ticket-wrap { max-width:820px; }
+.back-link { display:inline-flex;align-items:center;gap:6px;color:#4f46e5;font-weight:600;font-size:0.88rem;text-decoration:none;margin-bottom:20px; }
+.back-link:hover { text-decoration:underline; }
+
+.ticket-card { background:white;border-radius:18px;border:1px solid #e5e7eb;box-shadow:0 4px 20px rgba(0,0,0,0.06);overflow:hidden;margin-bottom:24px; }
+.ticket-header { background:linear-gradient(135deg,#1f2937,#374151);color:white;padding:26px 30px;display:flex;justify-content:space-between;align-items:flex-start; }
+.tid { font-size:0.82rem;opacity:0.7;font-weight:600;margin-bottom:6px; }
+.ticket-header h2 { font-size:1.35rem;font-weight:800; }
+.cat-pill { background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);padding:6px 14px;border-radius:20px;font-size:0.82rem;font-weight:700; }
+.ticket-body { padding:26px 30px; }
+
+/* Progress */
+.pb-title { font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#6b7280;margin-bottom:14px; }
+.steps { display:flex;align-items:center;margin-bottom:26px; }
+.step { flex:1;display:flex;flex-direction:column;align-items:center;position:relative; }
+.step:not(:last-child)::after { content:'';position:absolute;top:17px;left:50%;width:100%;height:3px;background:#e5e7eb;z-index:0; }
+.step.done:not(:last-child)::after { background:#1f2937; }
+.step-dot { width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:800;background:#f3f4f6;color:#9ca3af;border:3px solid #e5e7eb;position:relative;z-index:1; }
+.step.done .step-dot { background:#1f2937;color:white;border-color:#1f2937; }
+.step.active .step-dot { background:white;color:#1f2937;border-color:#1f2937;box-shadow:0 0 0 4px rgba(31,41,55,0.12); }
+.step-lbl { font-size:0.67rem;font-weight:700;color:#9ca3af;margin-top:7px;text-align:center; }
+.step.done .step-lbl,.step.active .step-lbl { color:#1f2937; }
+
+/* Info grid */
+.info-grid { display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:22px; }
+.info-item label { display:block;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#6b7280;margin-bottom:5px; }
+.info-item span { font-size:0.9rem;color:#111827;font-weight:600; }
+
+.desc-box { background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:22px;font-size:0.9rem;color:#374151;line-height:1.65; }
+
+.images-row { display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:22px; }
+.img-box label { font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#6b7280;display:block;margin-bottom:8px; }
+.img-box img { width:100%;border-radius:10px;border:1px solid #e5e7eb; }
+.img-placeholder { background:#f9fafb;border:2px dashed #e5e7eb;border-radius:10px;height:110px;display:flex;align-items:center;justify-content:center;color:#d1d5db;font-size:0.82rem; }
+
+/* Badges */
+.badge { display:inline-block;padding:4px 12px;border-radius:20px;font-size:0.77rem;font-weight:700; }
+.s-pending     { background:#fef9c3;color:#854d0e; }
+.s-in_progress { background:#dbeafe;color:#1e40af; }
+.s-resolved    { background:#d1fae5;color:#065f46; }
+.s-genuine     { background:#d1fae5;color:#065f46; }
+.s-fake        { background:#fee2e2;color:#991b1b; }
+
+/* Verify actions */
+.verify-actions { display:flex;gap:12px;margin-top:4px; }
+.btn-genuine { flex:1;padding:12px;background:#10b981;color:white;border:none;border-radius:10px;font-weight:700;font-size:0.9rem;text-decoration:none;text-align:center;display:block;transition:0.2s; }
+.btn-genuine:hover { background:#059669; }
+.btn-fake { flex:1;padding:12px;background:#ef4444;color:white;border:none;border-radius:10px;font-weight:700;font-size:0.9rem;text-decoration:none;text-align:center;display:block;transition:0.2s; }
+.btn-fake:hover { background:#dc2626; }
+.verified-box { background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px 18px;text-align:center;color:#15803d;font-weight:700;font-size:0.9rem; }
+
+.flash { padding:12px 16px;border-radius:10px;margin-bottom:18px;font-size:0.88rem; }
+.flash.success { background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0; }
+.flash.danger  { background:#fef2f2;color:#b91c1c;border:1px solid #fecaca; }
+.flash.info    { background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <h2 data-i18n="admin.panel">Admin Panel</h2>
+  <a href="{{ url_for('admin_dashboard') }}"   data-i18n="admin.dashboard">Dashboard</a>
+  <a href="{{ url_for('admin_complaints') }}"  data-i18n="admin.complaints" class="active">Complaints</a>
+  <a href="{{ url_for('admin_users') }}"       data-i18n="admin.users">Users</a>
+  <a href="{{ url_for('admin_add_workers') }}" data-i18n="admin.workers">Add Workers</a>
+  <a href="{{ url_for('admin_departments') }}" data-i18n="admin.departments">Departments</a>
+  <a href="{{ url_for('admin_leaderboard') }}" data-i18n="admin.leaderboard">Leaderboard</a>
+  <div id="lang-switcher" style="padding:8px 0 0;text-align:center;"></div>
+  <div class="logout-btn">
+    <a href="{{ url_for('admin_logout') }}" data-i18n="admin.logout">Logout</a>
+  </div>
+</div>
+
+<div class="main">
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat,msg in messages %}
+      <div class="flash {{ cat }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="ticket-wrap">
+
+    <a href="{{ url_for('admin_complaints') }}" class="back-link">
+      ← <span data-i18n="admin.back.complaints">Back to All Complaints</span>
+    </a>
+
+    <div class="ticket-card">
+      <div class="ticket-header">
+        <div>
+          <div class="tid">🎫 Ticket #{{ complaint[0] }}</div>
+          <h2>{{ complaint[2] }}</h2>
+        </div>
+        <span class="cat-pill">
+          {% if complaint[5]=='streetlight' %}⚡ {% elif complaint[5]=='water' %}💧 {% elif complaint[5]=='road' %}🛣️ {% elif complaint[5]=='sanitation' %}🧹 {% else %}📦 {% endif %}
+          {{ complaint[5]|capitalize }}
+        </span>
+      </div>
+
+      <div class="ticket-body">
+
+        <!-- Progress -->
+        <div class="pb-title" data-i18n="ticket.progress">Ticket Progress</div>
+        <div class="steps">
+          <div class="step done"><div class="step-dot">✓</div><div class="step-lbl" data-i18n="ticket.step1">Raised</div></div>
+          <div class="step {% if complaint[8] %}done{% else %}active{% endif %}">
+            <div class="step-dot">{% if complaint[8] %}✓{% else %}2{% endif %}</div>
+            <div class="step-lbl" data-i18n="ticket.step2">Assigned</div>
+          </div>
+          <div class="step {% if complaint[9] in ['in_progress','resolved'] %}done{% elif complaint[8] %}active{% endif %}">
+            <div class="step-dot">{% if complaint[9] in ['in_progress','resolved'] %}✓{% else %}3{% endif %}</div>
+            <div class="step-lbl" data-i18n="ticket.step3">In Progress</div>
+          </div>
+          <div class="step {% if complaint[9]=='resolved' %}done{% elif complaint[9]=='in_progress' %}active{% endif %}">
+            <div class="step-dot">{% if complaint[9]=='resolved' %}✓{% else %}4{% endif %}</div>
+            <div class="step-lbl" data-i18n="ticket.step4">Resolved</div>
+          </div>
+          <div class="step {% if complaint[10]=='verified' %}done{% elif complaint[9]=='resolved' %}active{% endif %}">
+            <div class="step-dot">{% if complaint[10]=='verified' %}✓{% else %}5{% endif %}</div>
+            <div class="step-lbl" data-i18n="ticket.step5">Verified</div>
+          </div>
+        </div>
+
+        <!-- Info -->
+        <div class="info-grid">
+          <div class="info-item">
+            <label data-i18n="ticket.status">Status</label>
+            <span class="badge s-{{ complaint[9] }}">{{ complaint[9]|replace('_',' ')|capitalize }}</span>
+          </div>
+          <div class="info-item">
+            <label data-i18n="ticket.reporter">Reported By</label>
+            <span>👤 {{ reporter }}</span>
+          </div>
+          <div class="info-item">
+            <label data-i18n="ticket.department">Department</label>
+            <span>🏛️ {{ dept_name }}</span>
+          </div>
+          <div class="info-item">
+            <label data-i18n="ticket.worker">Assigned Worker</label>
+            <span>👷 {{ worker_name }}</span>
+          </div>
+          <div class="info-item">
+            <label data-i18n="ticket.location">Location</label>
+            <span>📍 {{ complaint[4] }}</span>
+          </div>
+          <div class="info-item">
+            <label data-i18n="ticket.raised">Raised On</label>
+            <span>{{ complaint[13].strftime('%d %b %Y') if complaint[13] else '—' }}</span>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="desc-box">
+          <strong style="font-size:0.7rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;" data-i18n="complaint.label.desc">Description</strong>
+          <p style="margin-top:8px;">{{ complaint[3] }}</p>
+        </div>
+
+        <!-- Images -->
+        <div class="images-row">
+          <div class="img-box">
+            <label data-i18n="ticket.evidence">Evidence Photo</label>
+            {% if complaint[6] %}
+              <img src="{{ url_for('static', filename='uploads/' ~ complaint[6]) }}">
+            {% else %}
+              <div class="img-placeholder">📷 <span data-i18n="mycomp.no.image">No Image</span></div>
+            {% endif %}
+          </div>
+          <div class="img-box">
+            <label data-i18n="ticket.resolved.photo">Resolution Photo (by Worker)</label>
+            {% if complaint[12] %}
+              <img src="{{ url_for('static', filename='uploads/' ~ complaint[12]) }}">
+            {% else %}
+              <div class="img-placeholder">⏳ <span data-i18n="ticket.pending.resolution">Pending...</span></div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Admin Verify Action -->
+        {% if complaint[11] == 'pending' and complaint[9] == 'resolved' %}
+        <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:18px 22px;">
+          <p style="font-weight:700;color:#92400e;margin-bottom:14px;" data-i18n="admin.verify.prompt">Review this resolved ticket and mark it:</p>
+          <div class="verify-actions">
+            <a href="{{ url_for('admin_verify_complaint', complaint_id=complaint[0], action='genuine') }}"
+               class="btn-genuine" data-i18n="admin.action.genuine">✅ Mark as Genuine (+10 pts)</a>
+            <a href="{{ url_for('admin_verify_complaint', complaint_id=complaint[0], action='fake') }}"
+               class="btn-fake" data-i18n="admin.action.fake">❌ Mark as Fake</a>
+          </div>
+        </div>
+        {% elif complaint[11] == 'genuine' %}
+        <div class="verified-box">✅ <span data-i18n="admin.marked.genuine">Marked as Genuine — User awarded 10 points</span></div>
+        {% elif complaint[11] == 'fake' %}
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:14px 18px;text-align:center;color:#b91c1c;font-weight:700;">
+          ❌ <span data-i18n="admin.marked.fake">Marked as Fake</span>
+        </div>
+        {% else %}
+        <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:14px 18px;text-align:center;color:#64748b;font-size:0.88rem;">
+          <span data-i18n="admin.waiting.resolve">Waiting for worker to resolve this ticket before verification.</span>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/lang.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+{% extends "auth_base.html" %}
+
+{% block title %}Citizen Login | ComplaintHub{% endblock %}
+{% block heading %}Citizen Login{% endblock %}
+{% block subheading %}Access your community dashboard and earn points.{% endblock %}
+
+{% block content %}
+<form method="POST">
+    <div class="form-group" style="margin-bottom: 20px;">
+        <label data-i18n="auth.email">Work Email</label>
+        <input type="email" name="email" class="input-control" style="width: 100%;" 
+               placeholder="name@example.com" required>
+    </div>
+
+    <div class="form-group" style="margin-bottom: 20px;">
+        <label data-i18n="auth.password">Secure Password</label>
+        <div style="position: relative;">
+            <input type="password" name="password" id="login-password" 
+                   class="input-control" style="width: 100%;" placeholder="••••••••" required>
+            <span style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #94a3b8;" 
+                  onclick="togglePassword('login-password')">
+                <i data-lucide="eye" size="18"></i>
+            </span>
+        </div>
+        <div style="text-align: right; margin-top: 8px;">
+            <a href="{{ url_for('forgot_password') }}" style="color: var(--primary); font-size: 0.85rem; font-weight: 700; text-decoration: none;">Forgot Password?</a>
+        </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom: 8px;">
+        <label data-i18n="auth.role">Login Identity</label>
+        <select name="role" class="input-control" style="width: 100%;" required>
+            <option value="user" data-i18n="auth.role.user">Citizen / User</option>
+            <option value="worker" data-i18n="auth.role.worker">Field Worker</option>
+        </select>
+    </div>
+
+    <button type="submit" class="btn-auth" data-i18n="auth.login">
+        Login to Account
+    </button>
+</form>
+
+<div style="text-align: center; margin-top: 32px; font-size: 0.9rem;">
+    <span data-i18n="auth.no.account" style="color: #64748b;">Don't have an account?</span>
+    <a href="{{ url_for('register') }}" style="color: var(--primary); font-weight: 800; text-decoration: none;" data-i18n="auth.register.here">Register here</a>
+</div>
+
+<div style="text-align: center; margin-top: 20px;">
+    <a href="{{ url_for('home') }}" style="color: #64748b; text-decoration: none; font-size: 0.85rem; font-weight: 600;" data-i18n="auth.back.home">
+        <i data-lucide="arrow-left" size="14" style="vertical-align: middle;"></i> Back to Homepage
+    </a>
+</div>
+{% endblock %}

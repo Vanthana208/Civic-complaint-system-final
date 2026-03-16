@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block title %}Raise Complaint | ComplaintHub{% endblock %}
+
+{% block sidebar_nav %}
+<a href="{{ url_for('dashboard') }}" class="nav-item">
+    <i data-lucide="home"></i>
+    <span data-i18n="nav.dashboard">Overview</span>
+</a>
+<a href="{{ url_for('raise_complaint') }}" class="nav-item active">
+    <i data-lucide="plus-circle"></i>
+    <span data-i18n="nav.raise">Raise Complaint</span>
+</a>
+<a href="{{ url_for('my_complaints') }}" class="nav-item">
+    <i data-lucide="list"></i>
+    <span data-i18n="nav.track">Track Complaints</span>
+</a>
+<a href="{{ url_for('user_leaderboard') }}" class="nav-item">
+    <i data-lucide="trophy"></i>
+    <span data-i18n="nav.leaderboard">Leaderboard</span>
+</a>
+{% endblock %}
+
+{% block heading %}<span data-i18n="complaint.heading">Report an Issue</span>{% endblock %}
+{% block subheading %}<span data-i18n="complaint.subheading">Provide clear details to help us resolve the problem faster.</span>{% endblock %}
+
+{% block content %}
+<style>
+    .form-container {
+        max-width: 800px;
+        padding: 40px;
+    }
+
+    .category-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 12px;
+        margin-top: 8px;
+    }
+
+    .cat-option { display: none; }
+
+    .cat-label {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        padding: 20px 10px;
+        border: 2px solid var(--border);
+        border-radius: 16px;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: var(--bg-card);
+        text-align: center;
+    }
+
+    .cat-label:hover {
+        border-color: var(--primary);
+        background: #f5f3ff;
+    }
+
+    .cat-option:checked + .cat-label {
+        border-color: var(--primary);
+        background: #eef2ff;
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+    }
+
+    .cat-icon { font-size: 1.8rem; }
+    .cat-name { font-size: 0.85rem; font-weight: 700; color: var(--text-main); }
+
+    .upload-box {
+        border: 2px dashed var(--border);
+        padding: 30px;
+        border-radius: 16px;
+        text-align: center;
+        cursor: pointer;
+        transition: 0.2s;
+        background: #f8fafc;
+    }
+
+    .upload-box:hover { border-color: var(--primary); background: #f1f5f9; }
+</style>
+
+<div class="form-container glass-card">
+    <form method="POST" enctype="multipart/form-data">
+        <div class="form-group">
+            <label data-i18n="complaint.label.title">Problem Title</label>
+            <input type="text" name="title" class="input-control" 
+                   data-i18n="complaint.placeholder.title"
+                   placeholder="e.g. Broken streetlight on 5th Avenue" required>
+        </div>
+
+        <div class="form-group">
+            <label data-i18n="complaint.label.category">Select Category</label>
+            <div class="category-grid">
+                <input type="radio" name="category" id="cat-streetlight" value="streetlight" class="cat-option">
+                <label for="cat-streetlight" class="cat-label">
+                    <span class="cat-icon">⚡</span>
+                    <span class="cat-name" data-i18n="cat.streetlight">Street Light</span>
+                </label>
+
+                <input type="radio" name="category" id="cat-water" value="water" class="cat-option">
+                <label for="cat-water" class="cat-label">
+                    <span class="cat-icon">💧</span>
+                    <span class="cat-name" data-i18n="cat.water">Water / Leak</span>
+                </label>
+
+                <input type="radio" name="category" id="cat-road" value="road" class="cat-option">
+                <label for="cat-road" class="cat-label">
+                    <span class="cat-icon">🛣️</span>
+                    <span class="cat-name" data-i18n="cat.road">Road Damage</span>
+                </label>
+
+                <input type="radio" name="category" id="cat-sanitation" value="sanitation" class="cat-option">
+                <label for="cat-sanitation" class="cat-label">
+                    <span class="cat-icon">🧹</span>
+                    <span class="cat-name" data-i18n="cat.sanitation">Sanitation</span>
+                </label>
+
+                <input type="radio" name="category" id="cat-other" value="other" class="cat-option" checked>
+                <label for="cat-other" class="cat-label">
+                    <span class="cat-icon">📦</span>
+                    <span class="cat-name" data-i18n="cat.other">General / Other</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label data-i18n="complaint.label.location">Precise Location</label>
+            <input type="text" name="location" class="input-control" 
+                   data-i18n="complaint.placeholder.location"
+                   placeholder="Enter landmark or address" required>
+        </div>
+
+        <div class="form-group">
+            <label data-i18n="complaint.label.desc">Details</label>
+            <textarea name="description" class="input-control" style="min-height: 120px; resize: vertical;"
+                      data-i18n="complaint.placeholder.desc"
+                      placeholder="Describe the issue in detail..." required></textarea>
+        </div>
+
+        <div class="form-group">
+            <label data-i18n="complaint.label.image">Supporting Image (Optional)</label>
+            <div class="upload-box" id="drop-zone" onclick="document.getElementById('file-input').click()">
+                <div id="preview-container" style="display: none; margin-bottom: 15px;">
+                    <img id="image-preview" style="max-width: 100%; max-height: 200px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                </div>
+                <div id="upload-prompt">
+                    <i data-lucide="camera" style="width: 32px; height: 32px; color: var(--text-muted); margin-bottom: 10px;"></i>
+                    <div style="font-weight: 600; font-size: 0.9rem;" id="file-name">Click to upload photo or drag & drop</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">JPG, PNG or GIF (Max 5MB)</div>
+                </div>
+                <input type="file" name="image" id="file-input" style="display: none;" accept="image/*">
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 16px; margin-top: 10px;" id="submit-btn">
+            <i data-lucide="send"></i> <span data-i18n="complaint.submit">Submit Report</span>
+        </button>
+    </form>
+</div>
+
+<script>
+    const fileInput = document.getElementById('file-input');
+    const fileName = document.getElementById('file-name');
+    const previewContainer = document.getElementById('preview-container');
+    const imagePreview = document.getElementById('image-preview');
+    const uploadPrompt = document.getElementById('upload-prompt');
+    const form = document.querySelector('form');
+
+    fileInput.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            const file = this.files[0];
+            
+            // Validate size
+            if (file.size > 5 * 1024 * 1024) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'File too large',
+                    text: 'Image must be less than 5MB',
+                    confirmButtonColor: '#4f46e5'
+                });
+                this.value = '';
+                return;
+            }
+
+            fileName.textContent = file.name;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imagePreview.src = e.target.result;
+                previewContainer.style.display = 'block';
+                uploadPrompt.style.opacity = '0.5';
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    form.addEventListener('submit', function(e) {
+        const title = form.querySelector('[name="title"]').value;
+        const location = form.querySelector('[name="location"]').value;
+        const desc = form.querySelector('[name="description"]').value;
+
+        if (title.length < 5) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'warning',
+                title: 'Title too short',
+                text: 'Please provide a more descriptive title.',
+                confirmButtonColor: '#4f46e5'
+            });
+            return;
+        }
+
+        if (desc.length < 10) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'warning',
+                title: 'Missing Details',
+                text: 'Please describe the issue in at least 10 characters.',
+                confirmButtonColor: '#4f46e5'
+            });
+            return;
+        }
+
+        // Show loading state
+        const btn = document.getElementById('submit-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="spinner"></i> Submitting...';
+    });
+</script>
+
+<style>
+    .spinner {
+        width: 18px;
+        height: 18px;
+        border: 3px solid rgba(255,255,255,0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 1s ease-in-out infinite;
+        display: inline-block;
+        vertical-align: middle;
+        margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+{% endblock %}

@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Update Progress | Worker Portal{% endblock %}
+
+{% block sidebar_nav %}
+<a href="{{ url_for('worker_dash') }}" class="nav-item">
+    <i data-lucide="layout-dashboard"></i>
+    <span data-i18n="nav.dashboard">Dashboard</span>
+</a>
+<a href="{{ url_for('worker_dashboard') }}" class="nav-item active">
+    <i data-lucide="clipboard-list"></i>
+    <span data-i18n="worker.assigned">Active Tasks</span>
+</a>
+<a href="{{ url_for('worker_assigned_tasks') }}" class="nav-item">
+    <i data-lucide="history"></i>
+    <span data-i18n="worker.completed">Task History</span>
+</a>
+{% endblock %}
+
+{% block heading %}Submit Resolution{% endblock %}
+{% block subheading %}Provide evidence of work completed to resolve this task.{% endblock %}
+
+{% block content %}
+<style>
+    .form-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 40px;
+    }
+
+    .upload-zone {
+        border: 2px dashed #e2e8f0;
+        padding: 40px;
+        border-radius: 20px;
+        text-align: center;
+        background: #f8fafc;
+        transition: 0.3s;
+        cursor: pointer;
+        position: relative;
+    }
+
+    .upload-zone:hover {
+        border-color: var(--primary);
+        background: white;
+    }
+
+    .upload-zone i {
+        color: var(--primary);
+        margin-bottom: 15px;
+    }
+
+    input[type="file"] {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        opacity: 0;
+        cursor: pointer;
+    }
+</style>
+
+<div class="glass-card form-container">
+    <h3 style="font-weight: 800; text-align: center; margin-bottom: 10px;" data-i18n="worker.update.title">Update Complaint Status</h3>
+    <p style="text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 30px;" data-i18n="worker.update.desc">Upload a clear photo of the fixed site to verify resolution.</p>
+
+    <form method="POST" enctype="multipart/form-data">
+        <div class="upload-zone">
+            <i data-lucide="camera" size="40"></i>
+            <h4 style="font-weight: 700; margin-bottom: 5px;" data-i18n="worker.resolved.image">Resolution Evidence</h4>
+            <p style="font-size: 0.8rem; color: var(--text-muted);">Click or drag photo here to upload</p>
+            <input type="file" name="resolved_image" id="resolved-img" accept="image/*" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 16px; margin-top: 30px; font-size: 1rem; border-radius: 12px; font-weight: 700;">
+            Mark as Resolved
+        </button>
+    </form>
+
+    <script>
+        const upForm = document.querySelector('form');
+        upForm.addEventListener('submit', function(e) {
+            const file = document.getElementById('resolved-img').files[0];
+            if (!file) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Proof Required',
+                    text: 'Please upload a resolution photo as proof of work.',
+                    confirmButtonColor: '#4f46e5'
+                });
+            }
+        });
+
+        document.getElementById('resolved-img').addEventListener('change', function() {
+            if(this.files[0]) {
+                document.querySelector('.upload-zone p').textContent = 'Selected: ' + this.files[0].name;
+                document.querySelector('.upload-zone').style.borderColor = 'var(--secondary)';
+            }
+        });
+    </script>
+
+    <div style="text-align: center; margin-top: 25px; border-top: 1px solid var(--border); pt: 20px;">
+        <a href="{{ url_for('worker_dashboard') }}" class="btn" style="color: var(--text-muted); font-weight: 700;">
+            <i data-lucide="chevron-left" size="16"></i> <span data-i18n="worker.back.tasks">Back to Assigned Queue</span>
+        </a>
+    </div>
+</div>
+{% endblock %}

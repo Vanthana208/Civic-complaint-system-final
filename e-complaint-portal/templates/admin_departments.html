@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}" data-lang="{{ current_lang }}">
+<head>
+<meta charset="UTF-8">
+<title>Departments — Admin Panel</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin_panel.css') }}">
+<style>
+.dept-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  align-items: start;
+}
+
+/* Add form card */
+.form-card {
+  background: white;
+  padding: 28px;
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+  border: 1px solid #e5e7eb;
+}
+
+.form-card h3 {
+  font-size: 1.1rem; font-weight: 700;
+  color: #111827; margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid #f3f4f6;
+}
+
+.form-card .form-group { margin-bottom: 16px; }
+
+.form-card label {
+  display: block; font-size: 0.82rem;
+  font-weight: 600; color: #374151;
+  margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+
+.form-card input,
+.form-card select {
+  width: 100%; padding: 11px 14px;
+  border: 1.5px solid #e2e8f0; border-radius: 8px;
+  font-size: 0.9rem; background: #f9fafb;
+  color: #111827; transition: 0.2s;
+}
+
+.form-card input:focus,
+.form-card select:focus {
+  outline: none; border-color: #1f2937;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(31,41,55,0.08);
+}
+
+.form-card button {
+  width: 100%; padding: 12px;
+  background: #1f2937; color: white;
+  border: none; border-radius: 8px;
+  font-size: 0.95rem; font-weight: 700;
+  cursor: pointer; transition: 0.2s; margin-top: 4px;
+}
+
+.form-card button:hover { background: #374151; }
+
+/* Department cards list */
+.dept-list { display: flex; flex-direction: column; gap: 14px; }
+
+.dept-item {
+  background: white;
+  border-radius: 14px;
+  padding: 20px 24px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  display: flex; align-items: center; gap: 18px;
+}
+
+.dept-avatar {
+  width: 48px; height: 48px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem; flex-shrink: 0;
+}
+
+.cat-streetlight { background: #fef9c3; }
+.cat-water       { background: #e0f2fe; }
+.cat-road        { background: #fef2f2; }
+.cat-sanitation  { background: #f0fdf4; }
+.cat-other       { background: #f5f3ff; }
+
+.dept-info { flex: 1; }
+.dept-info .name { font-weight: 700; color: #0f172a; font-size: 1rem; }
+.dept-info .email { font-size: 0.82rem; color: #64748b; margin-top: 2px; }
+
+.cat-tag {
+  display: inline-block; padding: 3px 10px;
+  border-radius: 20px; font-size: 0.72rem; font-weight: 700;
+  text-transform: capitalize; margin-top: 5px;
+  background: #f1f5f9; color: #475569;
+}
+
+.dept-stats {
+  text-align: center; min-width: 70px;
+}
+
+.dept-stats .num { font-size: 1.4rem; font-weight: 800; color: #1f2937; }
+.dept-stats .lbl { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; }
+
+.delete-btn {
+  background: #fef2f2; color: #b91c1c;
+  border: 1px solid #fecaca;
+  padding: 7px 14px; border-radius: 8px;
+  font-size: 0.82rem; font-weight: 600;
+  cursor: pointer; transition: 0.2s;
+  text-decoration: none;
+}
+
+.delete-btn:hover { background: #fee2e2; }
+
+.empty-depts {
+  background: white; border-radius: 14px;
+  padding: 50px 30px; text-align: center;
+  border: 2px dashed #e2e8f0; color: #94a3b8;
+}
+
+.flash { padding:12px 16px; border-radius:10px; margin-bottom:20px; font-size:0.9rem; }
+.flash.danger  { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; }
+.flash.success { background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; }
+
+/* Category icons mapping */
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  
+  <a href="{{ url_for('admin_dashboard') }}"    data-i18n="admin.dashboard">Dashboard</a>
+  <a href="{{ url_for('admin_complaints') }}"   data-i18n="admin.complaints">Complaints</a>
+  <a href="{{ url_for('admin_users') }}"        data-i18n="admin.users">Users</a>
+  <a href="{{ url_for('admin_add_workers') }}"  data-i18n="admin.workers">Add Workers</a>
+  <a href="{{ url_for('admin_departments') }}"  data-i18n="admin.departments" class="active">Departments</a>
+  <a href="{{ url_for('admin_leaderboard') }}"  data-i18n="admin.leaderboard">Leaderboard</a>
+  <div id="lang-switcher" style="padding:8px 0 0;text-align:center;"></div>
+  <div class="logout-btn">
+    <a href="{{ url_for('admin_logout') }}" data-i18n="admin.logout">Logout</a>
+  </div>
+</div>
+
+<div class="main">
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="flash {{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <h2 class="page-title" style="margin-bottom:24px;">Departments</h2>
+
+  <div class="dept-grid">
+
+    <!-- Left: Add new department -->
+    <div class="form-card">
+      <h3>➕ Add New Department</h3>
+      <form method="POST">
+        <div class="form-group">
+          <label>Department Name</label>
+          <input type="text" name="name"
+                 placeholder="e.g. Water &amp; Drainage Board" required>
+        </div>
+        <div class="form-group">
+          <label>Login Email</label>
+          <input type="email" name="email"
+                 placeholder="water@gov.in" required>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" name="password"
+                 placeholder="Set a secure password" required>
+        </div>
+        <div class="form-group">
+          <label>Handles Category</label>
+          <select name="category" required>
+            <option value="">Select category…</option>
+            <option value="streetlight">⚡ Street Light</option>
+            <option value="water">💧 Water / Drainage</option>
+            <option value="road">🛣️ Road Damage</option>
+            <option value="sanitation">🧹 Sanitation</option>
+            <option value="other">📦 Other</option>
+          </select>
+        </div>
+        <button type="submit">Add Department</button>
+      </form>
+    </div>
+
+    <!-- Right: Existing departments -->
+    <div>
+      <h3 style="font-size:1rem;font-weight:700;color:#374151;margin-bottom:16px;">
+        Registered Departments
+        <span style="background:#e5e7eb;color:#374151;padding:2px 10px;
+                     border-radius:20px;font-size:0.8rem;margin-left:8px;">
+          {{ departments|length }}
+        </span>
+      </h3>
+
+      {% if departments %}
+      <div class="dept-list">
+        {% for d in departments %}
+        {% set icons = {'streetlight':'⚡','water':'💧','road':'🛣️','sanitation':'🧹','other':'📦'} %}
+        <div class="dept-item">
+          <div class="dept-avatar cat-{{ d[3] }}">
+            {{ icons.get(d[3], '📦') }}
+          </div>
+          <div class="dept-info">
+            <div class="name">{{ d[1] }}</div>
+            <div class="email">{{ d[2] }}</div>
+            <span class="cat-tag">{{ d[3] }}</span>
+          </div>
+          <div class="dept-stats">
+            <div class="num">{{ d[4] or 0 }}</div>
+            <div class="lbl">Total</div>
+          </div>
+          <div class="dept-stats">
+            <div class="num" style="color:#10b981;">{{ d[5] or 0 }}</div>
+            <div class="lbl">Resolved</div>
+          </div>
+          <form method="POST"
+                action="{{ url_for('admin_delete_department', dept_id=d[0]) }}"
+                onsubmit="return confirm('Remove {{ d[1] }}?')">
+            <button type="submit" class="delete-btn">Remove</button>
+          </form>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-depts">
+        <div style="font-size:2.5rem;margin-bottom:12px;">🏛️</div>
+        <p>No departments yet. Add one using the form.</p>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/lang.js') }}"></script>
+</body>
+</html>
