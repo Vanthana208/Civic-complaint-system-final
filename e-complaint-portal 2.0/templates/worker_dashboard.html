@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Assigned Work | Worker Portal{% endblock %}
+
+{% block sidebar_nav %}
+<a href="{{ url_for('worker_dash') }}" class="nav-item">
+    <i data-lucide="layout-dashboard"></i>
+    <span data-i18n="nav.dashboard">Dashboard</span>
+</a>
+<a href="{{ url_for('worker_dashboard') }}" class="nav-item active">
+    <i data-lucide="clipboard-list"></i>
+    <span data-i18n="worker.assigned">Active Tasks</span>
+</a>
+<a href="{{ url_for('worker_assigned_tasks') }}" class="nav-item">
+    <i data-lucide="history"></i>
+    <span data-i18n="worker.completed">Task History</span>
+</a>
+{% endblock %}
+
+{% block heading %}Duty Schedule{% endblock %}
+{% block subheading %}Priority tasks assigned to you for immediate resolution and reporting.{% endblock %}
+
+{% block content %}
+<style>
+    .task-container {
+        overflow-x: auto;
+        border-radius: 16px;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    th {
+        background: #f8fafc;
+        padding: 16px 20px;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        border-bottom: 1px solid var(--border);
+    }
+
+    td {
+        padding: 20px;
+        background: white;
+        border-bottom: 1px solid var(--border);
+        color: var(--text-main);
+        vertical-align: middle;
+    }
+
+    .status-pill {
+        padding: 4px 12px;
+        border-radius: 99px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: capitalize;
+    }
+
+    .status-pending { background: #fff7ed; color: #c2410c; }
+    .status-in_progress { background: #eff6ff; color: #1d4ed8; }
+    .status-resolved { background: #f0fdf4; color: #15803d; }
+
+    .img-thumb {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+    }
+</style>
+
+<div class="task-container glass-card" style="padding: 0;">
+    {% if complaints %}
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Task Details</th>
+                <th>Location</th>
+                <th>Reference Photo</th>
+                <th>Current Status</th>
+                <th style="text-align: right;">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for comp in complaints %}
+            <tr>
+                <td style="font-weight: 700; color: var(--primary);">#TASK-{{ comp[0] }}</td>
+                <td>
+                    <div style="font-weight: 700; color: #1e293b; margin-bottom: 4px;">{{ comp[2] }}</div>
+                    <div style="font-size: 0.85rem; color: var(--text-muted); max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        {{ comp[3] }}
+                    </div>
+                </td>
+                <td>
+                    <div style="font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="map-pin" size="14"></i> {{ comp[4] }}
+                    </div>
+                </td>
+                <td>
+                    {% if comp[5] %}
+                    <img src="{{ url_for('static', filename='uploads/' ~ comp[5]) }}" class="img-thumb" onclick="window.open(this.src)">
+                    {% else %}
+                    <span style="color: var(--text-muted); font-size: 0.8rem;">No Photo</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="status-pill status-{{ comp[7] }}">
+                        {{ comp[7]|replace('_',' ')|capitalize }}
+                    </span>
+                </td>
+                <td style="text-align: right;">
+                    {% if comp[7] != 'resolved' %}
+                    <a href="{{ url_for('update_task', complaint_id=comp[0]) }}" class="btn btn-primary" style="padding: 10px 20px; font-size: 0.85rem;" data-i18n="worker.update.btn">
+                        Update Status
+                    </a>
+                    {% else %}
+                    <div style="color: #10b981; font-weight: 700; display: flex; align-items: center; justify-content: flex-end; gap: 6px;">
+                        <i data-lucide="check-circle" size="16"></i> Completed
+                    </div>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div style="padding: 80px 40px; text-align: center; color: var(--text-muted);">
+        <i data-lucide="coffee" size="48" style="opacity: 0.2; margin-bottom: 15px;"></i>
+        <p>No active tasks assigned. Take some rest!</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

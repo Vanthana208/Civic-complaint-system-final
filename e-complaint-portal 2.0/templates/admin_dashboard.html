@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard | ComplaintHub{% endblock %}
+
+{% block sidebar_nav %}
+<a href="{{ url_for('admin_dashboard') }}" class="nav-item active">
+    <i data-lucide="layout-dashboard"></i>
+    <span data-i18n="admin.dashboard">Dashboard</span>
+</a>
+<a href="{{ url_for('admin_complaints') }}" class="nav-item">
+    <i data-lucide="clipboard-list"></i>
+    <span data-i18n="admin.complaints">Complaints</span>
+</a>
+<a href="{{ url_for('admin_users') }}" class="nav-item">
+    <i data-lucide="users"></i>
+    <span data-i18n="admin.users">Users</span>
+</a>
+<a href="{{ url_for('admin_add_workers') }}" class="nav-item">
+    <i data-lucide="user-plus"></i>
+    <span data-i18n="admin.workers">Add Workers</span>
+</a>
+<a href="{{ url_for('admin_departments') }}" class="nav-item">
+    <i data-lucide="building-2"></i>
+    <span data-i18n="admin.departments">Departments</span>
+</a>
+<a href="{{ url_for('admin_leaderboard') }}" class="nav-item">
+    <i data-lucide="trophy"></i>
+    <span data-i18n="admin.leaderboard">Leaderboard</span>
+</a>
+{% endblock %}
+
+{% block heading %}System Overview{% endblock %}
+{% block subheading %}Real-time monitoring of complaints, users, and infrastructure.{% endblock %}
+
+{% block content %}
+<style>
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 24px;
+        margin-bottom: 40px;
+    }
+
+    .stat-card {
+        padding: 24px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .stat-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .stat-info h3 {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 4px;
+    }
+
+    .stat-info .value {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .action-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 24px;
+    }
+
+    .welcome-card {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        color: white;
+        padding: 40px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .welcome-card::after {
+        content: '';
+        position: absolute;
+        top: -20px;
+        right: -20px;
+        width: 150px;
+        height: 150px;
+        background: rgba(255,255,255,0.03);
+        border-radius: 50%;
+    }
+</style>
+
+<div class="stats-grid">
+    <div class="stat-card glass-card">
+        <div class="stat-icon" style="background: #eef2ff; color: #4f46e5;">
+            <i data-lucide="file-text"></i>
+        </div>
+        <div class="stat-info">
+            <h3 data-i18n="admin.stat.total">Total Complaints</h3>
+            <div class="value">{{ total_complaints }}</div>
+        </div>
+    </div>
+
+    <div class="stat-card glass-card">
+        <div class="stat-icon" style="background: #ecfdf5; color: #10b981;">
+            <i data-lucide="check-circle"></i>
+        </div>
+        <div class="stat-info">
+            <h3 data-i18n="dash.resolved">Resolved</h3>
+            <div class="value">{{ resolved_complaints }}</div>
+        </div>
+    </div>
+
+    <div class="stat-card glass-card">
+        <div class="stat-icon" style="background: #f0f9ff; color: #0ea5e9;">
+            <i data-lucide="search"></i>
+        </div>
+        <div class="stat-info">
+            <h3 data-i18n="admin.stat.verified">Verified</h3>
+            <div class="value">{{ verified_complaints }}</div>
+        </div>
+    </div>
+
+    <div class="stat-card glass-card">
+        <div class="stat-icon" style="background: #fffbeb; color: #f59e0b;">
+            <i data-lucide="trash-2"></i>
+        </div>
+        <div class="stat-info">
+            <h3 data-i18n="admin.stat.bin">Awaiting in Bin</h3>
+            <div class="value">{{ in_bin }}</div>
+        </div>
+    </div>
+
+    <div class="stat-card glass-card">
+        <div class="stat-icon" style="background: #f5f3ff; color: #8b5cf6;">
+            <i data-lucide="users"></i>
+        </div>
+        <div class="stat-info">
+            <h3 data-i18n="admin.stat.users">Total Users</h3>
+            <div class="value">{{ total_users }}</div>
+        </div>
+    </div>
+
+    <div class="stat-card glass-card">
+        <div class="stat-icon" style="background: #ecfeff; color: #0891b2;">
+            <i data-lucide="construction"></i>
+        </div>
+        <div class="stat-info">
+            <h3 data-i18n="admin.stat.workers">Total Workers</h3>
+            <div class="value">{{ total_workers }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="action-row">
+    <div class="welcome-card glass-card">
+        <h2 style="font-size: 1.8rem; font-weight: 800; margin-bottom: 12px;">Admin Control Center</h2>
+        <p style="color: rgba(255,255,255,0.7); line-height: 1.6; margin-bottom: 25px;">
+            Manage departments, oversee community complaints, and reward active citizens from this unified dashboard.
+        </p>
+        <div style="display: flex; gap: 12px;">
+            <a href="{{ url_for('admin_complaints') }}" class="btn btn-primary">Manage Tickets</a>
+            <a href="{{ url_for('admin_add_workers') }}" class="btn" style="background: rgba(255,255,255,0.1); color: white;">Add Staff</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

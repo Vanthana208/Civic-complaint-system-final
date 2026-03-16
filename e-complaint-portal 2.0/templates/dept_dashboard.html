@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+
+{% block title %}{{ dept_name }} | Department Portal{% endblock %}
+
+{% block sidebar_nav %}
+<a href="{{ url_for('dept_dashboard') }}" class="nav-item active">
+    <i data-lucide="layout-dashboard"></i>
+    <span data-i18n="nav.dashboard">Dashboard</span>
+</a>
+<a href="{{ url_for('dept_leaderboard') }}" class="nav-item">
+    <i data-lucide="trophy"></i>
+    <span data-i18n="nav.leaderboard">Leaderboard</span>
+</a>
+{% endblock %}
+
+{% block heading %}{{ dept_name }}{% endblock %}
+{% block subheading %}Manage your departmental queue — assign workers and monitor issue resolution for {{ dept_category }} category.{% endblock %}
+
+{% block content %}
+<style>
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 24px;
+        margin-bottom: 40px;
+    }
+
+    .stat-card {
+        padding: 24px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .stat-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .stat-info h3 {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 4px;
+    }
+
+    .stat-info .value {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .section-header h3 {
+        font-weight: 800;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .badge-count {
+        background: var(--primary);
+        color: white;
+        padding: 2px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+
+    .table-container {
+        overflow-x: auto;
+        border-radius: 16px;
+        margin-bottom: 40px;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    th {
+        background: #f8fafc;
+        padding: 16px 20px;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        border-bottom: 1px solid var(--border);
+    }
+
+    td {
+        padding: 20px;
+        background: white;
+        border-bottom: 1px solid var(--border);
+        color: var(--text-main);
+        vertical-align: middle;
+    }
+
+    .thumb {
+        width: 60px;
+        height: 45px;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        border-radius: 99px;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+
+    .status-pending { background: #fff7ed; color: #c2410c; }
+    .status-resolved { background: #f0fdf4; color: #15803d; }
+    .status-in_progress { background: #eff6ff; color: #1d4ed8; }
+</style>
+
+<div class="stats-row">
+    <div class="stat-card glass-card">
+        <div class="stat-icon" style="background: #eef2ff; color: #4f46e5;">
+            <i data-lucide="inbox"></i>
+        </div>
+        <div class="stat-info">
+            <h3 data-i18n="dept.stats.bin">Pending in Bin</h3>
+            <div class="value">{{ in_bin }}</div>
+        </div>
+    </div>
+
+    <div class="stat-card glass-card">
+        <div class="stat-icon" style="background: #fffbeb; color: #f59e0b;">
+            <i data-lucide="user-cog"></i>
+        </div>
+        <div class="stat-info">
+            <h3 data-i18n="dept.stats.assigned">Active Assignments</h3>
+            <div class="value">{{ total_taken }}</div>
+        </div>
+    </div>
+
+    <div class="stat-card glass-card">
+        <div class="stat-icon" style="background: #ecfdf5; color: #10b981;">
+            <i data-lucide="check-circle-2"></i>
+        </div>
+        <div class="stat-info">
+            <h3 data-i18n="dept.stats.resolved">Resolved Issues</h3>
+            <div class="value">{{ total_resolved }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- COMMON BIN -->
+<div class="section-header">
+    <h3 data-i18n="dept.bin.title"><i data-lucide="alert-circle"></i> Unassigned Complaints</h3>
+    <span class="badge-count">{{ pending_complaints|length }} New</span>
+</div>
+
+<div class="table-container glass-card" style="padding: 0;">
+    {% if pending_complaints %}
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Complaint Details</th>
+                <th>Location</th>
+                <th>Evidence</th>
+                <th>Received</th>
+                <th>Assignment</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in pending_complaints %}
+            <tr>
+                <td style="font-weight: 700; color: var(--primary);">
+                    <a href="{{ url_for('dept_ticket_view', complaint_id=c[0]) }}" style="text-decoration: none; color: inherit;">#{{ c[0] }}</a>
+                </td>
+                <td>
+                    <div style="font-weight: 700; color: #1e293b;">{{ c[1] }}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        {{ c[2] }}
+                    </div>
+                </td>
+                <td><div style="font-size: 0.85rem;"><i data-lucide="map-pin" size="14"></i> {{ c[3] }}</div></td>
+                <td>
+                    {% if c[5] %}
+                    <img src="{{ url_for('static', filename='uploads/' ~ c[5]) }}" class="thumb">
+                    {% else %}
+                    <span style="color: var(--text-muted); font-size: 0.75rem;">—</span>
+                    {% endif %}
+                </td>
+                <td style="color: var(--text-muted); font-size: 0.8rem;">{{ c[8].strftime('%d %b %Y') if c[8] else '—' }}</td>
+                <td>
+                    {% if free_workers %}
+                    <form method="POST" action="{{ url_for('dept_assign_worker', complaint_id=c[0]) }}" style="display: flex; gap: 8px;">
+                        <select name="worker_id" class="input-control" style="padding: 6px 12px; font-size: 0.8rem; min-width: 150px;" required>
+                            <option value="">Select Worker</option>
+                            {% for w in free_workers %}
+                            <option value="{{ w[0] }}">{{ w[1] }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-primary" style="padding: 6px 12px; font-size: 0.8rem;">Assign</button>
+                    </form>
+                    {% else %}
+                    <span style="color: #ef4444; font-size: 0.8rem; font-weight: 600;">No Staff Available</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div style="padding: 60px; text-align: center; color: var(--text-muted);">
+        <i data-lucide="check-square" size="48" style="opacity: 0.2; margin-bottom: 15px;"></i>
+        <p>No pending complaints in your category.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- ACTIVE ASSIGNMENTS -->
+<div class="section-header">
+    <h3 data-i18n="dept.active.title"><i data-lucide="activity"></i> Active & Completed</h3>
+    <span class="badge-count" style="background: #64748b;">{{ assigned_complaints|length }} Total</span>
+</div>
+
+<div class="table-container glass-card" style="padding: 0;">
+    {% if assigned_complaints %}
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Complaint</th>
+                <th>Worker</th>
+                <th>Status</th>
+                <th>Verification</th>
+                <th>Update Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in assigned_complaints %}
+            <tr>
+                <td style="font-weight: 700; color: var(--primary);">
+                    <a href="{{ url_for('dept_ticket_view', complaint_id=t[0]) }}" style="text-decoration: none; color: inherit;">#{{ t[0] }}</a>
+                </td>
+                <td style="font-weight: 600;">{{ t[1] }}</td>
+                <td><div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem;"><i data-lucide="construction" size="14"></i> {{ t[5] }}</div></td>
+                <td>
+                    <span class="status-badge status-{{ t[2] }}">
+                        {{ t[2]|replace('_',' ')|capitalize }}
+                    </span>
+                </td>
+                <td>
+                    <span class="status-badge {% if t[3] == 'verified' %}status-resolved{% else %}status-pending{% endif %}">
+                        {{ t[3]|capitalize }}
+                    </span>
+                </td>
+                <td style="color: var(--text-muted); font-size: 0.8rem;">{{ t[6].strftime('%d %b %Y') if t[6] else '—' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div style="padding: 40px; text-align: center; color: var(--text-muted);">
+        <p>No active assignments yet.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

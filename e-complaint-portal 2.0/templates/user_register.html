@@ -1,0 +1,82 @@
+{% extends "auth_base.html" %}
+
+{% block title %}Join Community | ComplaintHub{% endblock %}
+{% block heading %}Create Account{% endblock %}
+{% block subheading %}Join thousands of citizens improving their city.{% endblock %}
+
+{% block content %}
+<form method="POST">
+    <div class="form-group" style="margin-bottom: 16px;">
+        <label data-i18n="auth.username">Your Full Name</label>
+        <input type="text" name="username" class="input-control" style="width: 100%;" 
+               placeholder="John Doe" required>
+    </div>
+
+    <div class="form-group" style="margin-bottom: 16px;">
+        <label data-i18n="auth.email">Email Address</label>
+        <input type="email" name="email" class="input-control" style="width: 100%;" 
+               placeholder="john@example.com" required>
+    </div>
+
+    <div class="form-group" style="margin-bottom: 16px;">
+        <label data-i18n="auth.mobile">Mobile Contact</label>
+        <input type="tel" name="mobile" class="input-control" style="width: 100%;" 
+               placeholder="+91 98765 43210" pattern="[0-9+ ]{10,15}" required>
+    </div>
+
+    <div class="form-group" style="margin-bottom: 8px;">
+        <label data-i18n="auth.password">Create Password</label>
+        <div style="position: relative;">
+            <input type="password" name="password" id="reg-password" 
+                   class="input-control" style="width: 100%;" placeholder="Min. 6 characters" required minlength="6">
+            <span style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #94a3b8;" 
+                  onclick="togglePassword('reg-password')">
+                <i data-lucide="eye" size="18"></i>
+            </span>
+        </div>
+    </div>
+
+    <button type="submit" class="btn-auth" id="reg-btn" data-i18n="auth.register">
+        Sign Up Now
+    </button>
+</form>
+
+<script>
+    const regForm = document.querySelector('form');
+    regForm.addEventListener('submit', function(e) {
+        const mobile = regForm.querySelector('[name="mobile"]').value;
+        const password = regForm.querySelector('[name="password"]').value;
+        const email = regForm.querySelector('[name="email"]').value;
+
+        // Simple Mobile Validation
+        if (!/^\d{10}$/.test(mobile.replace(/[^0-9]/g, ""))) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Mobile',
+                text: 'Please enter a valid 10-digit mobile number.',
+                confirmButtonColor: '#4f46e5'
+            });
+            return;
+        }
+
+        if (password.length < 6) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'warning',
+                title: 'Weak Password',
+                text: 'Password must be at least 6 characters long.',
+                confirmButtonColor: '#4f46e5'
+            });
+            return;
+        }
+
+        document.getElementById('reg-btn').innerHTML = 'Creating Account...';
+    });
+</script>
+
+<div style="text-align: center; margin-top: 32px; font-size: 0.9rem;">
+    <span data-i18n="auth.have.account" style="color: #64748b;">Already a member?</span>
+    <a href="{{ url_for('login') }}" style="color: var(--primary); font-weight: 800; text-decoration: none;" data-i18n="auth.login.here">Login here</a>
+</div>
+{% endblock %}

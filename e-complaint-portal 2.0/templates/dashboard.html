@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Overview | ComplaintHub{% endblock %}
+
+{% block sidebar_nav %}
+<a href="{{ url_for('dashboard') }}" class="nav-item active">
+    <i data-lucide="home"></i>
+    <span data-i18n="nav.dashboard">Overview</span>
+</a>
+<a href="{{ url_for('raise_complaint') }}" class="nav-item">
+    <i data-lucide="plus-circle"></i>
+    <span data-i18n="nav.raise">Raise Complaint</span>
+</a>
+<a href="{{ url_for('my_complaints') }}" class="nav-item">
+    <i data-lucide="list"></i>
+    <span data-i18n="nav.track">Track Complaints</span>
+</a>
+<a href="{{ url_for('user_leaderboard') }}" class="nav-item">
+    <i data-lucide="trophy"></i>
+    <span data-i18n="nav.leaderboard">Leaderboard</span>
+</a>
+{% endblock %}
+
+{% block heading %}
+<span data-i18n="dash.welcome">Welcome back</span>, {{ username }}!
+{% endblock %}
+
+{% block subheading %}
+<span data-i18n="dash.today">Here's a summary of your community impact today.</span>
+{% endblock %}
+
+{% block content %}
+<style>
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 24px;
+        margin-bottom: 40px;
+    }
+
+    .stat-card {
+        padding: 30px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .stat-label {
+        color: var(--text-muted);
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 24px;
+    }
+
+    .action-card {
+        padding: 30px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+</style>
+
+<div class="stats-grid">
+    <div class="stat-card glass-card">
+        <div class="stat-icon" style="background: #eef2ff; color: #4f46e5;">
+            <i data-lucide="file-text"></i>
+        </div>
+        <div>
+            <div class="stat-value">{{total_complaints}}</div>
+            <div class="stat-label" data-i18n="dash.total">Total Complaints Raised</div>
+        </div>
+    </div>
+
+    <div class="stat-card glass-card">
+        <div class="stat-icon" style="background: #ecfdf5; color: #10b981;">
+            <i data-lucide="check-circle"></i>
+        </div>
+        <div>
+            <div class="stat-value">{{resolved_complaints}}</div>
+            <div class="stat-label" data-i18n="dash.resolved">Successfully Resolved</div>
+        </div>
+    </div>
+
+    <div class="stat-card glass-card">
+        <div class="stat-icon" style="background: #fffbeb; color: #f59e0b;">
+            <i data-lucide="award"></i>
+        </div>
+        <div>
+            <div class="stat-value">{{points}}</div>
+            <div class="stat-label" data-i18n="dash.points">Citizen Reward Points</div>
+        </div>
+    </div>
+</div>
+
+<div class="quick-actions">
+    <div class="action-card glass-card" style="border-left: 6px solid #4f46e5;">
+        <h3 style="font-weight: 700; color: #1e293b;" data-i18n="dash.tip.title">Community Action</h3>
+        <p style="color: var(--text-muted); font-size: 0.95rem;" data-i18n="dash.tip">
+            Spotted a public issue? Reporting it early helps the community and earns you points.
+        </p>
+        <a href="{{ url_for('raise_complaint') }}" class="btn btn-primary" style="align-self: flex-start; margin-top: auto;">
+            <i data-lucide="plus"></i> <span data-i18n="nav.raise">Raise New Complaint</span>
+        </a>
+    </div>
+
+    <div class="action-card glass-card" style="border-left: 6px solid #10b981;">
+        <h3 style="font-weight: 700; color: #1e293b;" data-i18n="dash.verify.title">Verify Fixes</h3>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+            Check your resolved complaints and verify the work to close the ticket.
+        </p>
+        <a href="{{ url_for('my_complaints') }}" class="btn" style="background: #eef2ff; color: #4f46e5; align-self: flex-start; margin-top: auto;">
+            <i data-lucide="search"></i> <span data-i18n="nav.track">Track Progress</span>
+        </a>
+    </div>
+</div>
+{% endblock %}
