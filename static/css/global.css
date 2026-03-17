@@ -9,7 +9,27 @@
     --text-main: #1e293b;
     --text-muted: #64748b;
     --sidebar-width: 280px;
+    --header-height: 70px;
+    --content-padding: 40px;
     --border: #e2e8f0;
+    --radius-lg: 20px;
+    --radius-md: 12px;
+    --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+}
+
+@media (max-width: 1024px) {
+    :root {
+        --content-padding: 24px;
+        --sidebar-width: 260px;
+    }
+}
+
+@media (max-width: 768px) {
+    :root {
+        --content-padding: 20px;
+        --sidebar-width: 0px;
+    }
 }
 
 * {

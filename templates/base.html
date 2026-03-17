@@ -13,13 +13,13 @@
         :root {
             --sidebar-bg: #1e293b;
             --sidebar-hover: rgba(255, 255, 255, 0.1);
-            --header-height: 70px;
         }
 
         body {
             display: flex;
             min-height: 100vh;
             background-color: var(--bg-main);
+            overflow-x: hidden;
         }
 
         /* Sidebar */
@@ -31,8 +31,9 @@
             flex-direction: column;
             position: fixed;
             height: 100vh;
-            transition: all 0.3s;
+            transition: transform 0.3s ease, width 0.3s ease;
             z-index: 1001;
+            overflow-y: auto;
         }
 
         .sidebar-header {
@@ -43,12 +44,12 @@
             font-weight: 800;
             font-size: 1.2rem;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            white-space: nowrap;
         }
 
         .sidebar-nav {
             flex: 1;
             padding: 20px 10px;
-            overflow-y: auto;
         }
 
         .nav-item {
@@ -58,10 +59,11 @@
             padding: 12px 16px;
             color: rgba(255, 255, 255, 0.7);
             text-decoration: none;
-            border-radius: 12px;
+            border-radius: var(--radius-md);
             margin-bottom: 4px;
             font-weight: 500;
             transition: all 0.2s;
+            white-space: nowrap;
         }
 
         .nav-item:hover, .nav-item.active {
@@ -81,6 +83,7 @@
             display: flex;
             flex-direction: column;
             min-width: 0;
+            transition: margin-left 0.3s ease;
         }
 
         .top-header {
@@ -90,14 +93,14 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 40px;
+            padding: 0 var(--content-padding);
             position: sticky;
             top: 0;
             z-index: 1000;
         }
 
         .content-area {
-            padding: 40px;
+            padding: var(--content-padding);
             flex: 1;
         }
 
@@ -123,27 +126,40 @@
             border: none;
             cursor: pointer;
             color: var(--text-main);
+            padding: 8px;
+            margin-left: -8px;
         }
 
-        @media (max-width: 1024px) {
-            .content-area { padding: 25px; }
-            .top-header { padding: 0 25px; }
+        /* Overlay */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
 
         @media (max-width: 768px) {
             .sidebar {
                 transform: translateX(-100%);
+                width: 280px !important;
             }
             .sidebar.show {
                 transform: translateX(0);
-                width: 280px;
             }
-            .main-wrapper {
-                margin-left: 0;
+            .sidebar.show + .main-wrapper + .sidebar-overlay {
+                display: block;
+                opacity: 1;
             }
             .mobile-toggle {
                 display: block;
             }
+            
+            .page-title { font-size: 1.5rem; }
+            .user-profile { text-align: right; }
         }
     </style>
 </head>
@@ -214,11 +230,22 @@
         </main>
     </div>
 
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
     <script>
         lucide.createIcons();
 
         function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('show');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.toggle('show');
+            if (sidebar.classList.contains('show')) {
+                overlay.style.display = 'block';
+                setTimeout(() => overlay.style.opacity = '1', 10);
+            } else {
+                overlay.style.opacity = '0';
+                setTimeout(() => overlay.style.display = 'none', 300);
+            }
         }
     </script>
     <script src="{{ url_for('static', filename='js/lang.js') }}"></script>

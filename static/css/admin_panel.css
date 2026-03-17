@@ -6,7 +6,7 @@ body {
 
 /* Sidebar */
 .sidebar {
-    width: 240px;
+    width: var(--sidebar-width);
     height: 100vh;
     background: linear-gradient(180deg, #1f2a40, #111827);
     color: #fff;
@@ -14,11 +14,15 @@ body {
     top: 0;
     left: 0;
     padding-top: 25px;
+    transition: transform 0.3s ease, width 0.3s ease;
+    z-index: 1001;
+    overflow-y: auto;
 }
 
 .sidebar h2 {
     text-align: center;
     margin-bottom: 40px;
+    white-space: nowrap;
 }
 
 .sidebar a {
@@ -27,6 +31,7 @@ body {
     text-decoration: none;
     padding: 14px 25px;
     transition: 0.3s;
+    white-space: nowrap;
 }
 
 .sidebar a:hover,
@@ -38,10 +43,10 @@ body {
 
 /* Logout */
 .logout-btn {
-    position: absolute;
-    bottom: 25px;
+    margin-top: auto;
     width: 100%;
     text-align: center;
+    padding-bottom: 25px;
 }
 
 .logout-btn a {
@@ -50,12 +55,14 @@ body {
     border-radius: 25px;
     color: white;
     text-decoration: none;
+    display: inline-block;
 }
 
 /* Main */
 .main {
-    margin-left: 240px;
-    padding: 40px;
+    margin-left: var(--sidebar-width);
+    padding: var(--content-padding);
+    transition: margin-left 0.3s ease;
 }
 
 .page-title {

@@ -152,6 +152,36 @@
             transform: translateY(-2px);
         }
 
+        /* --- MOBILE NAV --- */
+        .mobile-nav-toggle {
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--dark);
+        }
+
+        @media (max-width: 968px) {
+            .nav-links, .nav-actions .btn { display: none; }
+            .mobile-nav-toggle { display: block; }
+            .container { padding: 0 24px; }
+            
+            .nav-links.active {
+                display: flex;
+                flex-direction: column;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: white;
+                padding: 24px;
+                gap: 16px;
+                border-bottom: 1px solid var(--border);
+                box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            }
+            .nav-links.active a { opacity: 1; }
+        }
+
         /* --- HERO SECTION --- */
         .hero {
             padding: 220px 0 140px;
@@ -229,6 +259,12 @@
             display: flex;
             gap: 16px;
             flex-wrap: wrap;
+        }
+
+        @media (max-width: 640px) {
+            .hero h1 { font-size: 2.5rem; }
+            .hero p { font-size: 1.1rem; }
+            .hero-buttons .btn { width: 100%; justify-content: center; }
         }
 
         /* Portal Cards (Hero Right) */
@@ -404,10 +440,11 @@
             ComplaintHub
         </a>
         
-        <div class="nav-links">
+        <div class="nav-links" id="nav-links">
             <a href="#features" data-i18n="nav.features">Features</a>
             <a href="#impact">Our Impact</a>
             <a href="#contact" data-i18n="nav.contact">Support</a>
+            <a href="{{ url_for('login') }}" class="mobile-only" style="display: none;">Sign In</a>
         </div>
 
         <div class="nav-actions">
@@ -416,9 +453,19 @@
             
             <a href="{{ url_for('login') }}" class="btn btn-outline" data-i18n="nav.signin">Sign In</a>
             <a href="{{ url_for('register') }}" class="btn btn-primary" data-i18n="nav.register">Join Community</a>
+            
+            <button class="mobile-nav-toggle" onclick="toggleMobileMenu()">
+                <i data-lucide="menu"></i>
+            </button>
         </div>
     </div>
 </nav>
+
+<style>
+    @media (max-width: 968px) {
+        .mobile-only { display: block !important; }
+    }
+</style>
 
 <section class="hero">
     <div class="container hero-grid">
@@ -606,6 +653,10 @@
             nav.classList.remove('scrolled');
         }
     });
+
+    function toggleMobileMenu() {
+        document.getElementById('nav-links').classList.toggle('active');
+    }
 
     // Reveal animations
     const observer = new IntersectionObserver((entries) => {
