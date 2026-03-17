@@ -160,23 +160,23 @@
         <!-- Timeline -->
         <div class="status-timeline">
             <div class="timeline-step done">
-                <div class="step-indicator">1</div>
+                <div class="step-indicator"><i data-lucide="check" size="16"></i></div>
                 <div class="step-text" data-i18n="ticket.step1">Raised</div>
             </div>
             <div class="timeline-step {% if complaint[8] %}done{% else %}active{% endif %}">
-                <div class="step-indicator">2</div>
+                <div class="step-indicator">{% if complaint[8] %}<i data-lucide="check" size="16"></i>{% else %}2{% endif %}</div>
                 <div class="step-text" data-i18n="ticket.step2">Assigned</div>
             </div>
             <div class="timeline-step {% if complaint[9] in ['in_progress','resolved'] %}done{% elif complaint[8] %}active{% endif %}">
-                <div class="step-indicator">3</div>
+                <div class="step-indicator">{% if complaint[9] in ['in_progress','resolved'] %}<i data-lucide="check" size="16"></i>{% else %}3{% endif %}</div>
                 <div class="step-text" data-i18n="ticket.step3">Started</div>
             </div>
             <div class="timeline-step {% if complaint[9] == 'resolved' %}done{% elif complaint[9] == 'in_progress' %}active{% endif %}">
-                <div class="step-indicator">4</div>
+                <div class="step-indicator">{% if complaint[9] == 'resolved' %}<i data-lucide="check" size="16"></i>{% else %}4{% endif %}</div>
                 <div class="step-text" data-i18n="ticket.step4">Fixed</div>
             </div>
             <div class="timeline-step {% if complaint[10] == 'verified' %}done{% elif complaint[9] == 'resolved' %}active{% endif %}">
-                <div class="step-indicator">5</div>
+                <div class="step-indicator">{% if complaint[10] == 'verified' %}<i data-lucide="check" size="16"></i>{% else %}5{% endif %}</div>
                 <div class="step-text" data-i18n="ticket.step5">Verified</div>
             </div>
         </div>
@@ -222,7 +222,7 @@
     </div>
 
     <div class="sidebar-info">
-        <div class="glass-card" style="padding: 25px; margin-bottom: 24px;">
+        <div class="glass-card" style="padding: 25px; margin-bottom: 24px;" id="status-card">
             <h4 style="font-weight: 800; margin-bottom: 20px; font-size: 0.9rem;">Status Tracking</h4>
             
             <div style="display: flex; flex-direction: column; gap: 15px;">
@@ -232,7 +232,7 @@
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <span style="font-size: 0.85rem; color: var(--text-muted);">Verification</span>
-                    <span class="status-badge" style="background: {{ '#f0fdf4' if complaint[10] == 'verified' else '#fff7ed' }}; color: {{ '#15803d' if complaint[10] == 'verified' else '#c2410c' }};">
+                    <span class="status-badge" id="verification-badge" style="background: {{ '#f0fdf4' if complaint[10] == 'verified' else '#fff7ed' }}; color: {{ '#15803d' if complaint[10] == 'verified' else '#c2410c' }};">
                         {{ complaint[10]|capitalize }}
                     </span>
                 </div>
@@ -242,18 +242,18 @@
                 </div>
             </div>
 
+            <div id="verify-action-container">
             {% if complaint[9] == 'resolved' and complaint[10] != 'verified' %}
-            <form method="POST" action="{{ url_for('verify_complaint', complaint_id=complaint[0]) }}" style="margin-top: 25px;">
-                <button type="submit" class="btn btn-primary" style="width: 100%; border-radius: 12px; padding: 14px;">
-                    <i data-lucide="check-circle" size="18"></i> Verify Fix
-                </button>
-                <p style="font-size: 0.72rem; color: var(--text-muted); text-align: center; margin-top: 10px;">Please confirm if the issue is resolved to your satisfaction.</p>
-            </form>
+            <button onclick="handleVerify({{ complaint[0] }})" class="btn btn-primary" id="verify-btn" style="width: 100%; border-radius: 12px; padding: 14px; margin-top: 25px;">
+                <i data-lucide="check-circle" size="18"></i> Verify Fix
+            </button>
+            <p style="font-size: 0.72rem; color: var(--text-muted); text-align: center; margin-top: 10px;">Please confirm if the issue is resolved to your satisfaction.</p>
             {% elif complaint[10] == 'verified' %}
             <div style="margin-top: 25px; padding: 15px; border-radius: 12px; background: #ecfdf5; border: 1px solid #d1fae5; text-align: center;">
                 <p style="color: #065f46; font-weight: 800; font-size: 0.85rem;"><i data-lucide="award" size="16"></i> Fix Verified</p>
             </div>
             {% endif %}
+            </div>
         </div>
 
         <div class="glass-card" style="padding: 25px; background: #f8fafc; border-style: dashed;">
@@ -263,4 +263,67 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function handleVerify(id) {
+    Swal.fire({
+        title: 'Confirm Resolution?',
+        text: 'Are you satisfied with the fix? This awards points and closes the ticket.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#10b981',
+        confirmButtonText: 'Yes, Satisfied!',
+        cancelButtonText: 'Not yet'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const btn = document.getElementById('verify-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Verifying...';
+
+            fetch(`/verify-complaint/${id}`, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Verified!', data.message, 'success');
+                    
+                    // Update Stepper
+                    const steps = document.querySelectorAll('.timeline-step');
+                    const lastStep = steps[steps.length - 1];
+                    lastStep.classList.remove('active');
+                    lastStep.classList.add('done');
+                    lastStep.querySelector('.step-indicator').innerHTML = '<i data-lucide="check" size="16"></i>';
+                    lucide.createIcons();
+
+                    // Update Badge
+                    const badge = document.getElementById('verification-badge');
+                    badge.innerText = 'Verified';
+                    badge.style.background = '#f0fdf4';
+                    badge.style.color = '#15803d';
+
+                    // Update Action Container
+                    document.getElementById('verify-action-container').innerHTML = `
+                        <div style="margin-top: 25px; padding: 15px; border-radius: 12px; background: #ecfdf5; border: 1px solid #d1fae5; text-align: center;">
+                            <p style="color: #065f46; font-weight: 800; font-size: 0.85rem;"><i data-lucide="award" size="16"></i> Fix Verified</p>
+                        </div>
+                    `;
+                    lucide.createIcons();
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i data-lucide="check-circle" size="18"></i> Verify Fix';
+                }
+            })
+            .catch(err => {
+                Swal.fire('Error', 'Connection failed', 'error');
+                btn.disabled = false;
+            });
+        }
+    });
+}
+</script>
 {% endblock %}

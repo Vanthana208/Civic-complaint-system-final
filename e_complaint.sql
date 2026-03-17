@@ -60,6 +60,8 @@ CREATE TABLE IF NOT EXISTS complaints (
   verification_status ENUM('pending','verified') DEFAULT 'pending',
   admin_verification  ENUM('pending','genuine','fake') DEFAULT 'pending',
   resolved_image      VARCHAR(255),
+  latitude            DECIMAL(10, 8),
+  longitude           DECIMAL(11, 8),
   created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   FOREIGN KEY (user_id)            REFERENCES users(id)       ON DELETE SET NULL,

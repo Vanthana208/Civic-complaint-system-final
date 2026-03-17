@@ -79,6 +79,12 @@
     }
 
     .upload-box:hover { border-color: var(--primary); background: #f1f5f9; }
+    
+    .drag-active {
+        border-color: var(--primary) !important;
+        background: rgba(79, 70, 229, 0.05) !important;
+        transform: scale(1.02);
+    }
 </style>
 
 <div class="form-container glass-card">
@@ -125,11 +131,25 @@
             </div>
         </div>
 
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
         <div class="form-group">
             <label data-i18n="complaint.label.location">Precise Location</label>
-            <input type="text" name="location" class="input-control" 
-                   data-i18n="complaint.placeholder.location"
-                   placeholder="Enter landmark or address" required>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <input type="text" name="location" id="location-input" class="input-control" 
+                       data-i18n="complaint.placeholder.location"
+                       placeholder="Enter landmark or address" required>
+                <input type="hidden" name="latitude" id="lat-input">
+                <input type="hidden" name="longitude" id="lng-input">
+                <button type="button" class="btn" onclick="getLocation()" style="background: #f1f5f9; color: var(--primary); padding: 0 15px;">
+                    <i data-lucide="locate-fixed"></i>
+                </button>
+            </div>
+            <div id="map" style="height: 300px; border-radius: 16px; border: 1px solid var(--border); z-index: 1;"></div>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px;">
+                <i data-lucide="info" size="12"></i> Click on the map to drop a pin or use the locate button.
+            </p>
         </div>
 
         <div class="form-group">
@@ -167,6 +187,101 @@
     const imagePreview = document.getElementById('image-preview');
     const uploadPrompt = document.getElementById('upload-prompt');
     const form = document.querySelector('form');
+    const locationInput = document.getElementById('location-input');
+    const latInput = document.getElementById('lat-input');
+    const lngInput = document.getElementById('lng-input');
+
+    // Map Initialization
+    let map = L.map('map').setView([13.0827, 80.2707], 13); // Default to Chennai
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap beneficiaries'
+    }).addTo(map);
+
+    let marker = L.marker([13.0827, 80.2707], {draggable: true}).addTo(map);
+
+    function updateLocation(lat, lng) {
+        marker.setLatLng([lat, lng]);
+        map.panTo([lat, lng]);
+        latInput.value = lat;
+        lngInput.value = lng;
+        
+        // Reverse Geocoding (Free Nominatim API)
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.display_name) {
+                    locationInput.value = data.display_name;
+                } else {
+                    locationInput.value = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                }
+            })
+            .catch(() => {
+                locationInput.value = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+            });
+    }
+
+    map.on('click', function(e) {
+        updateLocation(e.latlng.lat, e.latlng.lng);
+    });
+
+    marker.on('dragend', function(e) {
+        const pos = marker.getLatLng();
+        updateLocation(pos.lat, pos.lng);
+    });
+
+    function getLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((pos) => {
+                updateLocation(pos.coords.latitude, pos.coords.longitude);
+                map.setZoom(16);
+            }, () => {
+                Swal.fire('Error', 'Unable to retrieve your location', 'error');
+            });
+        }
+    }
+
+    // Premium Form Interactions
+    const dropZone = document.getElementById('drop-zone');
+
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, e => {
+            e.preventDefault();
+            e.stopPropagation();
+        }, false);
+    });
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => {
+            dropZone.classList.add('drag-active');
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => {
+            dropZone.classList.remove('drag-active');
+        }, false);
+    });
+
+    dropZone.addEventListener('drop', e => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        fileInput.files = files;
+        fileInput.dispatchEvent(new Event('change'));
+    });
+
+    // Real-time Validation
+    const inputs = form.querySelectorAll('.input-control');
+    inputs.forEach(input => {
+        input.addEventListener('input', () => {
+            if (input.checkValidity()) {
+                input.style.borderColor = '#10b981';
+                input.style.boxShadow = '0 0 0 4px rgba(16, 185, 129, 0.1)';
+            } else {
+                input.style.borderColor = '#ef4444';
+                input.style.boxShadow = '0 0 0 4px rgba(239, 68, 68, 0.1)';
+            }
+        });
+    });
 
     fileInput.addEventListener('change', function() {
         if (this.files && this.files[0]) {
@@ -190,6 +305,7 @@
             reader.onload = function(e) {
                 imagePreview.src = e.target.result;
                 previewContainer.style.display = 'block';
+                imagePreview.style.animation = 'fadeInUp 0.5s ease-out';
                 uploadPrompt.style.opacity = '0.5';
             }
             reader.readAsDataURL(file);
@@ -231,6 +347,17 @@
 </script>
 
 <style>
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .input-control:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+        transform: translateY(-1px);
+    }
+
     .spinner {
         width: 18px;
         height: 18px;

@@ -169,7 +169,22 @@
             cancelButtonText: 'Not yet'
         }).then((result) => {
             if (result.isConfirmed) {
-                document.getElementById('verify-form-' + id).submit();
+                fetch(`/verify-complaint/${id}`, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire('Verified!', data.message, 'success');
+                        const row = document.querySelector(`button[onclick="confirmVerify('${id}')"]`).closest('tr');
+                        row.cells[5].innerHTML = `<span class="status-badge status-resolved"><i data-lucide="check-circle" size="14"></i> Verified</span>`;
+                        row.cells[6].innerHTML = `<div style="color: #10b981; font-weight: 700; display: flex; align-items: center; gap: 4px; font-size: 0.85rem;"><i data-lucide="award" size="16"></i> Verified</div>`;
+                        lucide.createIcons();
+                    } else {
+                        Swal.fire('Error', data.message, 'error');
+                    }
+                });
             }
         });
     }

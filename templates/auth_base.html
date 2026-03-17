@@ -54,8 +54,8 @@
         .blob-2 { width: 300px; height: 300px; background: #8b5cf6; bottom: -50px; right: -50px; }
 
         .auth-card {
-            width: 100%;
-            max-width: 440px;
+            width: 90%;
+            max-width: 480px;
             background: var(--glass);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
@@ -65,7 +65,15 @@
             position: relative;
             z-index: 1;
             box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
-            transition: padding 0.3s ease;
+            transition: all 0.3s ease;
+            margin: auto;
+        }
+
+        @media (max-width: 768px) {
+            .auth-card {
+                padding: 40px 32px;
+                max-width: 400px;
+            }
         }
 
         @media (max-width: 480px) {

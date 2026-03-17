@@ -188,6 +188,8 @@ def raise_complaint():
         description = request.form['description']
         location    = request.form['location']
         category    = request.form['category']
+        latitude    = request.form.get('latitude')
+        longitude   = request.form.get('longitude')
         user_id     = session['user_id']
         filename    = save_file(request.files.get('image'))
 
@@ -201,9 +203,9 @@ def raise_complaint():
 
             cursor.execute(
                 "INSERT INTO complaints "
-                "(user_id, title, description, location, category, image, department_id, status) "
-                "VALUES (%s, %s, %s, %s, %s, %s, %s, 'pending')",
-                (user_id, title, description, location, category, filename, department_id)
+                "(user_id, title, description, location, category, image, department_id, status, latitude, longitude) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, 'pending', %s, %s)",
+                (user_id, title, description, location, category, filename, department_id, latitude, longitude)
             )
             mysql.connection.commit()
             ticket_id = cursor.lastrowid
@@ -271,10 +273,14 @@ def verify_complaint(complaint_id):
         flash("Complaint verified successfully!", "success")
     except Exception as e:
         mysql.connection.rollback()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return {"success": False, "message": "Error verifying complaint!"}, 500
         flash("Error verifying complaint!", "danger")
     finally:
         cursor.close()
 
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return {"success": True, "message": "Complaint verified successfully!"}
     return redirect(url_for('my_complaints'))
 
 
@@ -946,6 +952,38 @@ def admin_ticket_view(complaint_id):
         reporter=complaint[16]
     )
 
+@app.route('/admin/live-map')
+def admin_live_map():
+    if 'admin_logged_in' not in session:
+        return redirect(url_for('admin_login'))
+    return render_template('admin_map.html')
+
+@app.route('/api/admin/complaints-locations')
+def api_admin_complaints_locations():
+    if 'admin_logged_in' not in session:
+        return {"error": "Unauthorized"}, 403
+    
+    cursor = mysql.connection.cursor()
+    cursor.execute("""
+        SELECT id, title, category, status, latitude, longitude 
+        FROM complaints 
+        WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+    """)
+    complaints = cursor.fetchall()
+    cursor.close()
+    
+    data = []
+    for c in complaints:
+        data.append({
+            "id": c[0],
+            "title": c[1],
+            "category": c[2],
+            "status": c[3],
+            "lat": float(c[4]),
+            "lng": float(c[5])
+        })
+    return {"complaints": data}
+
 
 # ================== DEPT TICKET VIEW ==================
 @app.route('/dept/ticket/<int:complaint_id>')
@@ -987,6 +1025,50 @@ def dept_ticket_view(complaint_id):
         free_workers=free_workers,
         dept_id=session['dept_id']
     )
+
+# ================== ANALYTICS API ==================
+@app.route('/api/analytics/complaints')
+def api_analytics_complaints():
+    if 'role' not in session:
+        return {"error": "Unauthorized"}, 403
+    
+    dept_filter = ""
+    user_filter = ""
+    params = []
+    if session.get('role') == 'department':
+        dept_filter = " AND department_id = %s"
+        params = [session.get('dept_id')]
+    elif session.get('role') == 'user':
+        user_filter = " AND user_id = %s"
+        params = [session.get('user_id')]
+    
+    cursor = mysql.connection.cursor()
+    
+    # 1. Trend: Complaints per day (last 30 days)
+    cursor.execute(f"""
+        SELECT DATE(created_at) as date, COUNT(*) as count 
+        FROM complaints 
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) {dept_filter} {user_filter}
+        GROUP BY DATE(created_at)
+        ORDER BY date
+    """, params)
+    trend_data = [{"date": str(row[0]), "count": row[1]} for row in cursor.fetchall()]
+    
+    # 2. Categories breakdown
+    cursor.execute(f"SELECT category, COUNT(*) FROM complaints WHERE 1=1 {dept_filter} GROUP BY category", params)
+    category_data = {row[0]: row[1] for row in cursor.fetchall()}
+    
+    # 3. Status breakdown
+    cursor.execute(f"SELECT status, COUNT(*) FROM complaints WHERE 1=1 {dept_filter} GROUP BY status", params)
+    status_data = {row[0]: row[1] for row in cursor.fetchall()}
+    
+    cursor.close()
+    
+    return {
+        "trend": trend_data,
+        "categories": category_data,
+        "status": status_data
+    }
 
 # ================== RUN APP ==================
 if __name__ == '__main__':

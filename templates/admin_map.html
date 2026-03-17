@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Live Map | Admin Portal{% endblock %}
+
+{% block sidebar_nav %}
+<a href="{{ url_for('admin_dashboard') }}" class="nav-item">
+    <i data-lucide="layout-dashboard"></i>
+    <span data-i18n="admin.dashboard">Dashboard</span>
+</a>
+<a href="{{ url_for('admin_live_map') }}" class="nav-item active">
+    <i data-lucide="map"></i>
+    <span>Live Map</span>
+</a>
+<a href="{{ url_for('admin_complaints') }}" class="nav-item">
+    <i data-lucide="clipboard-list"></i>
+    <span data-i18n="admin.complaints">Complaints</span>
+</a>
+<a href="{{ url_for('admin_users') }}" class="nav-item">
+    <i data-lucide="users"></i>
+    <span data-i18n="admin.users">Users</span>
+</a>
+<a href="{{ url_for('admin_add_workers') }}" class="nav-item">
+    <i data-lucide="user-plus"></i>
+    <span data-i18n="admin.workers">Add Workers</span>
+</a>
+<a href="{{ url_for('admin_departments') }}" class="nav-item">
+    <i data-lucide="building-2"></i>
+    <span data-i18n="admin.departments">Departments</span>
+</a>
+{% endblock %}
+
+{% block heading %}Live Incident Map{% endblock %}
+{% block subheading %}A geographic overview of all community issues reported across the city.{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<div class="glass-card" style="padding: 0; overflow: hidden; height: 600px; position: relative;">
+    <div id="admin-map" style="height: 100%; width: 100%; z-index: 1;"></div>
+    
+    <!-- Legend -->
+    <div style="position: absolute; bottom: 20px; right: 20px; z-index: 1000; background: rgba(255,255,255,0.9); padding: 15px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 160px;">
+        <h4 style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; margin-bottom: 10px; color: var(--text-muted);">Status Legend</h4>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 0.8rem;">
+                <span style="width: 12px; height: 12px; border-radius: 50%; background: #f59e0b;"></span> Pending
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 0.8rem;">
+                <span style="width: 12px; height: 12px; border-radius: 50%; background: #4f46e5;"></span> In Progress
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 0.8rem;">
+                <span style="width: 12px; height: 12px; border-radius: 50%; background: #10b981;"></span> Resolved
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const map = L.map('admin-map').setView([13.0827, 80.2707], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap beneficiaries'
+    }).addTo(map);
+
+    fetch('/api/admin/complaints-locations')
+        .then(res => res.json())
+        .then(data => {
+            if (data.complaints && data.complaints.length > 0) {
+                const markers = [];
+                data.complaints.forEach(c => {
+                    const color = c.status === 'resolved' ? '#10b981' : (c.status === 'in_progress' ? '#4f46e5' : '#f59e0b');
+                    
+                    const marker = L.circleMarker([c.lat, c.lng], {
+                        radius: 8,
+                        fillColor: color,
+                        color: "#fff",
+                        weight: 2,
+                        opacity: 1,
+                        fillOpacity: 0.8
+                    }).addTo(map);
+
+                    marker.bindPopup(`
+                        <div style="padding: 5px;">
+                            <h4 style="margin: 0 0 5px 0; font-weight: 800; color: #1e293b;">${c.title}</h4>
+                            <p style="margin: 0 0 10px 0; font-size: 0.75rem; color: #64748b;">Category: ${c.category.toUpperCase()}</p>
+                            <span style="display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 0.65rem; font-weight: 800; background: ${color}22; color: ${color}; text-transform: uppercase;">${c.status}</span>
+                            <hr style="margin: 10px 0; border: 0; border-top: 1px solid #e2e8f0;">
+                            <a href="/admin/ticket/${c.id}" style="font-size: 0.75rem; font-weight: 700; color: #4f46e5; text-decoration: none;">View Details →</a>
+                        </div>
+                    `);
+                    markers.push([c.lat, c.lng]);
+                });
+
+                if (markers.length > 0) {
+                    map.fitBounds(markers);
+                }
+            } else {
+                Toast.fire({ icon: 'info', title: 'No mapped complaints found.' });
+            }
+        });
+});
+</script>
+{% endblock %}

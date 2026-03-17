@@ -6,31 +6,46 @@ A multi-role civic complaint management system built with Flask + MySQL.
 
 ## 🚀 Quick Setup
 
-### 1. Install Python dependencies
+### 1. Configure production environment
+Rename `.env.example` to `.env` and fill in your production database credentials.
+```bash
+cp .env.example .env
+```
+
+### 2. Install Python dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Setup MySQL Database
-Run the SQL script in your MySQL client (port 3308 by default):
+### 3. Setup MySQL Database
+Run the SQL script (ensures map and analytics support):
 ```bash
-mysql -u root -P 3308 < e_complaint.sql
-```
-
-### 3. Configure database in app.py (if needed)
-```python
-app.config['MYSQL_HOST']     = 'localhost'
-app.config['MYSQL_PORT']     = 3308       # change if different
-app.config['MYSQL_USER']     = 'root'
-app.config['MYSQL_PASSWORD'] = ''         # add your password
-app.config['MYSQL_DB']       = 'e_complaint'
+mysql -u root < e_complaint.sql
 ```
 
 ### 4. Run the app
-```bash
-python app.py
-```
-Visit: http://localhost:5000
+- **Local Dev**: `python app.py`
+- **Production (cPanel)**: Uses `passenger_wsgi.py` automatically.
+- **Production (Linux/Gunicorn)**: `gunicorn wsgi:application`
+
+---
+
+## 🔥 Modern Features (V2.0)
+
+1.  **Live Map View**: Admin can see all complaints as interactive color-coded pins.
+2.  **Visual Analytics**: Interactive Trend and Category charts on all dashboards.
+3.  **Real-time Logic**: Automatic status updates and AI-enhanced form validation.
+4.  **Premium UI**: Dark mode, skeleton loaders, and glassmorphism design.
+5.  **Multi-Language**: Full support for English, Tamil, and Hindi.
+
+---
+
+## ✅ Recent Fixes & Improvements
+
+1.  **Sidebar Alignment**: Fixed layout issues where the sidebar moved to the top.
+2.  **Responsive Design**: Certified for Laptop, Tablet, and Mobile views.
+3.  **Chart Sizing**: Standardized dashboard analytics to prevent vertical stretching.
+4.  **Deployment Ready**: Added `wsgi.py`, `passenger_wsgi.py`, and `.env` support.
 
 ---
 
