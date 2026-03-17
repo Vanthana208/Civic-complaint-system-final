@@ -33,8 +33,7 @@ app.config['MYSQL_PORT']            = int(os.getenv('MYSQL_PORT', 3306))
 app.config['MYSQL_USER']            = os.getenv('MYSQL_USER', 'root')
 app.config['MYSQL_PASSWORD']        = os.getenv('MYSQL_PASSWORD', '')
 app.config['MYSQL_DB']              = os.getenv('MYSQL_DB', 'e_complaint')
-app.config['MYSQL_CONNECT_TIMEOUT']  = 30  # Increased for slow remote handshakes
-# Note: If your host requires SSL, uncomment or add these env vars
+app.config['MYSQL_CONNECT_TIMEOUT']  = 10  # Seconds (low enough to beat Gunicorn 30s kill)
 # app.config['MYSQL_CUSTOM_OPTIONS'] = {'ssl': {'ca': '/path/to/ca.pem'}} 
 
 mysql = MySQL(app)
@@ -84,21 +83,20 @@ def register():
         mobile   = request.form['mobile']
         password = generate_password_hash(request.form['password'])
 
-        cursor = mysql.connection.cursor()
         try:
+            cursor = get_db_cursor()
             cursor.execute(
                 "INSERT INTO users (username, email, mobile, password) VALUES (%s, %s, %s, %s)",
                 (username, email, mobile, password)
             )
             mysql.connection.commit()
             flash("Registration successful! You can now login.", "success")
+            cursor.close()
             return redirect(url_for('login'))
         except Exception as e:
             mysql.connection.rollback()
-            flash("Error: Could not register. Email may already exist.", "danger")
+            flash("Error: Could not register. Email may already exist or DB is busy.", "danger")
             return redirect(url_for('register'))
-        finally:
-            cursor.close()
     return render_template('user_register.html')
 
 
@@ -110,39 +108,42 @@ def login():
         password = request.form['password']
         role     = request.form['role']
 
-        cursor = mysql.connection.cursor()
+        try:
+            cursor = get_db_cursor()
+            if role == 'user':
+                cursor.execute(
+                    "SELECT id, username, email, password FROM users WHERE email=%s", (email,)
+                )
+                user = cursor.fetchone()
+                cursor.close()
+                if user and check_password_hash(user[3], password):
+                    session['user_id']  = user[0]
+                    session['username'] = user[1]
+                    session['role']     = 'user'
+                    flash("User login successful!", "success")
+                    return redirect(url_for('dashboard'))
+                else:
+                    flash("Invalid user credentials!", "danger")
+                    return redirect(url_for('login'))
 
-        if role == 'user':
-            cursor.execute(
-                "SELECT id, username, email, password FROM users WHERE email=%s", (email,)
-            )
-            user = cursor.fetchone()
-            cursor.close()
-            if user and check_password_hash(user[3], password):
-                session['user_id']  = user[0]
-                session['username'] = user[1]
-                session['role']     = 'user'
-                flash("User login successful!", "success")
-                return redirect(url_for('dashboard'))
-            else:
-                flash("Invalid user credentials!", "danger")
-                return redirect(url_for('login'))
-
-        elif role == 'worker':
-            cursor.execute(
-                "SELECT id, name, email, password FROM workers WHERE email=%s", (email,)
-            )
-            worker = cursor.fetchone()
-            cursor.close()
-            if worker and check_password_hash(worker[3], password):
-                session['worker_id'] = worker[0]
-                session['username']  = worker[1]
-                session['role']      = 'worker'
-                flash("Worker login successful!", "success")
-                return redirect(url_for('worker_dash'))
-            else:
-                flash("Invalid worker credentials!", "danger")
-                return redirect(url_for('login'))
+            elif role == 'worker':
+                cursor.execute(
+                    "SELECT id, name, email, password FROM workers WHERE email=%s", (email,)
+                )
+                worker = cursor.fetchone()
+                cursor.close()
+                if worker and check_password_hash(worker[3], password):
+                    session['worker_id'] = worker[0]
+                    session['username']  = worker[1]
+                    session['role']      = 'worker'
+                    flash("Worker login successful!", "success")
+                    return redirect(url_for('worker_dash'))
+                else:
+                    flash("Invalid worker credentials!", "danger")
+                    return redirect(url_for('login'))
+        except Exception as e:
+            flash("Login service currently busy. Please try again.", "warning")
+            return redirect(url_for('login'))
 
         else:
             flash("Please select a role!", "warning")
@@ -159,22 +160,26 @@ def dashboard():
         return redirect(url_for('login'))
 
     user_id = session['user_id']
-    cursor  = mysql.connection.cursor()
+    try:
+        cursor  = get_db_cursor()
 
-    cursor.execute("SELECT COUNT(*) FROM complaints WHERE user_id=%s", (user_id,))
-    total_complaints = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM complaints WHERE user_id=%s", (user_id,))
+        total_complaints = cursor.fetchone()[0]
 
-    cursor.execute("SELECT COUNT(*) FROM complaints WHERE status='resolved' AND user_id=%s", (user_id,))
-    resolved_complaints = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM complaints WHERE status='resolved' AND user_id=%s", (user_id,))
+        resolved_complaints = cursor.fetchone()[0]
 
-    cursor.execute("SELECT COUNT(*) FROM complaints WHERE verification_status='verified' AND user_id=%s", (user_id,))
-    verified_complaints = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM complaints WHERE verification_status='verified' AND user_id=%s", (user_id,))
+        verified_complaints = cursor.fetchone()[0]
 
-    cursor.execute("SELECT points FROM users WHERE id=%s", (user_id,))
-    row = cursor.fetchone()
-    points = row[0] if row else 0
+        cursor.execute("SELECT points FROM users WHERE id=%s", (user_id,))
+        row = cursor.fetchone()
+        points = row[0] if row else 0
 
-    cursor.close()
+        cursor.close()
+    except Exception as e:
+        flash("Could not load dashboard data.", "warning")
+        return redirect(url_for('logout'))
 
     return render_template(
         'dashboard.html',
@@ -203,8 +208,8 @@ def raise_complaint():
         user_id     = session['user_id']
         filename    = save_file(request.files.get('image'))
 
-        cursor = mysql.connection.cursor()
         try:
+            cursor = get_db_cursor()
             cursor.execute(
                 "SELECT id FROM departments WHERE category=%s LIMIT 1", (category,)
             )
@@ -219,15 +224,13 @@ def raise_complaint():
             )
             mysql.connection.commit()
             ticket_id = cursor.lastrowid
+            cursor.close()
             flash(f"✅ Ticket #{ticket_id} raised successfully! Department will pick it up shortly.", "success")
             return redirect(url_for('ticket_detail', complaint_id=ticket_id))
         except Exception as e:
             mysql.connection.rollback()
-            print("Error:", e)
-            flash("Error submitting complaint.", "danger")
+            flash("Error submitting complaint. Database busy.", "danger")
             return redirect(url_for('raise_complaint'))
-        finally:
-            cursor.close()
 
     return render_template('raise_complaint.html')
 
@@ -240,16 +243,20 @@ def my_complaints():
         return redirect(url_for('login'))
 
     user_id = session['user_id']
-    cursor  = mysql.connection.cursor()
-    cursor.execute("""
-        SELECT c.*, COALESCE(d.name, 'Unassigned') AS dept_name
-        FROM complaints c
-        LEFT JOIN departments d ON c.department_id = d.id
-        WHERE c.user_id = %s
-        ORDER BY c.created_at DESC
-    """, (user_id,))
-    complaints = cursor.fetchall()
-    cursor.close()
+    try:
+        cursor  = get_db_cursor()
+        cursor.execute("""
+            SELECT c.*, COALESCE(d.name, 'Unassigned') AS dept_name
+            FROM complaints c
+            LEFT JOIN departments d ON c.department_id = d.id
+            WHERE c.user_id = %s
+            ORDER BY c.created_at DESC
+        """, (user_id,))
+        complaints = cursor.fetchall()
+        cursor.close()
+    except Exception as e:
+        flash("Could not load complaints list.", "warning")
+        return redirect(url_for('dashboard'))
 
     return render_template('my_complaints.html', complaints=complaints)
 
@@ -262,14 +269,15 @@ def verify_complaint(complaint_id):
         return redirect(url_for('login'))
 
     user_id = session['user_id']
-    cursor  = mysql.connection.cursor()
     try:
+        cursor  = get_db_cursor()
         cursor.execute(
             "SELECT assigned_worker_id FROM complaints WHERE id=%s AND user_id=%s",
             (complaint_id, user_id)
         )
         complaint = cursor.fetchone()
         if not complaint:
+            cursor.close()
             flash("Complaint not found!", "danger")
             return redirect(url_for('my_complaints'))
 
@@ -280,14 +288,13 @@ def verify_complaint(complaint_id):
         if worker_id:
             cursor.execute("UPDATE workers SET status='free' WHERE id=%s", (worker_id,))
         mysql.connection.commit()
+        cursor.close()
         flash("Complaint verified successfully!", "success")
     except Exception as e:
         mysql.connection.rollback()
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return {"success": False, "message": "Error verifying complaint!"}, 500
-        flash("Error verifying complaint!", "danger")
-    finally:
-        cursor.close()
+        flash("Error verifying complaint! DB busy.", "danger")
 
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return {"success": True, "message": "Complaint verified successfully!"}
@@ -301,10 +308,14 @@ def user_leaderboard():
         flash("Please login as user first.", "warning")
         return redirect(url_for('login'))
 
-    cursor = mysql.connection.cursor()
-    cursor.execute("SELECT username, points FROM users ORDER BY points DESC")
-    leaderboard = cursor.fetchall()
-    cursor.close()
+    try:
+        cursor = get_db_cursor()
+        cursor.execute("SELECT username, points FROM users ORDER BY points DESC")
+        leaderboard = cursor.fetchall()
+        cursor.close()
+    except Exception as e:
+        flash("Leaderboard temporarily unavailable.", "warning")
+        return redirect(url_for('dashboard'))
 
     return render_template('user_leaderboard.html', leaderboard=leaderboard)
 
@@ -315,10 +326,14 @@ def dept_leaderboard():
         flash("Please login as department first.", "warning")
         return redirect(url_for('dept_login'))
 
-    cursor = mysql.connection.cursor()
-    cursor.execute("SELECT username, points FROM users ORDER BY points DESC")
-    leaderboard = cursor.fetchall()
-    cursor.close()
+    try:
+        cursor = get_db_cursor()
+        cursor.execute("SELECT username, points FROM users ORDER BY points DESC")
+        leaderboard = cursor.fetchall()
+        cursor.close()
+    except Exception as e:
+        flash("Leaderboard unavailable. Refresh later.", "warning")
+        return redirect(url_for('dept_dashboard'))
 
     return render_template('dept_leaderboard.html', leaderboard=leaderboard)
 
@@ -337,29 +352,29 @@ def forgot_password():
         role = request.form['role']
         email = request.form['email']
 
-        cursor = mysql.connection.cursor()
-        
-        table = ""
-        if role == 'user':
-            table = "users"
-        elif role == 'worker':
-            table = "workers"
-        elif role == 'department':
-            table = "departments"
-        
-        if table:
-            cursor.execute(f"SELECT id FROM {table} WHERE email=%s", (email,))
-            user = cursor.fetchone()
-            cursor.close()
+        try:
+            cursor = get_db_cursor()
+            table = ""
+            if role == 'user':
+                table = "users"
+            elif role == 'worker':
+                table = "workers"
+            elif role == 'department':
+                table = "departments"
             
-            if user:
-                # In a real app, we would send a token via email. 
-                # For this project, we'll redirect to the reset page directly for simplicity.
-                return redirect(url_for('reset_password', role=role, email=email))
+            if table:
+                cursor.execute(f"SELECT id FROM {table} WHERE email=%s", (email,))
+                user = cursor.fetchone()
+                cursor.close()
+                
+                if user:
+                    return redirect(url_for('reset_password', role=role, email=email))
+                else:
+                    flash("Email not found in our records.", "danger")
             else:
-                flash("Email not found in our records.", "danger")
-        else:
-            flash("Invalid role selected.", "warning")
+                flash("Invalid role selected.", "warning")
+        except Exception as e:
+            flash("Service busy. Try again soon.", "warning")
             
     return render_template('forgot_password.html')
 
@@ -369,18 +384,19 @@ def reset_password(role, email):
     if request.method == 'POST':
         password = generate_password_hash(request.form['password'])
         
-        cursor = mysql.connection.cursor()
-        table = ""
-        if role == 'user':
-            table = "users"
-        elif role == 'worker':
-            table = "workers"
-        elif role == 'department':
-            table = "departments"
-            
         try:
+            cursor = get_db_cursor()
+            table = ""
+            if role == 'user':
+                table = "users"
+            elif role == 'worker':
+                table = "workers"
+            elif role == 'department':
+                table = "departments"
+                
             cursor.execute(f"UPDATE {table} SET password=%s WHERE email=%s", (password, email))
             mysql.connection.commit()
+            cursor.close()
             flash("Password reset successful! You can now login.", "success")
             
             if role == 'department':
@@ -388,9 +404,7 @@ def reset_password(role, email):
             return redirect(url_for('login'))
         except Exception as e:
             mysql.connection.rollback()
-            flash("Error updating password.", "danger")
-        finally:
-            cursor.close()
+            flash("Error updating password. DB is busy.", "danger")
             
     return render_template('reset_password.html', role=role, email=email)
 
@@ -405,12 +419,16 @@ def dept_login():
         email    = request.form['email']
         password = request.form['password']
 
-        cursor = mysql.connection.cursor()
+    try:
+        cursor = get_db_cursor()
         cursor.execute(
             "SELECT id, name, email, password, category FROM departments WHERE email=%s", (email,)
         )
         dept = cursor.fetchone()
         cursor.close()
+    except Exception as e:
+        flash("Database busy. Please try again soon.", "warning")
+        return redirect(url_for('index'))
 
         # Support both hashed passwords (added via admin form) and plain (seeded via SQL)
         password_ok = False
@@ -442,46 +460,49 @@ def dept_dashboard():
 
     dept_id       = session['dept_id']
     dept_category = session['dept_category']
-    cursor        = mysql.connection.cursor()
+    try:
+        cursor = get_db_cursor()
+        cursor.execute("""
+            SELECT c.id, c.title, c.description, c.location, c.category,
+                   c.image, c.status, u.username, c.created_at
+            FROM complaints c
+            JOIN users u ON c.user_id = u.id
+            WHERE c.category = %s
+              AND c.assigned_worker_id IS NULL
+              AND c.status = 'pending'
+            ORDER BY c.created_at ASC
+        """, (dept_category,))
+        pending_complaints = cursor.fetchall()
 
-    cursor.execute("""
-        SELECT c.id, c.title, c.description, c.location, c.category,
-               c.image, c.status, u.username, c.created_at
-        FROM complaints c
-        JOIN users u ON c.user_id = u.id
-        WHERE c.category = %s
-          AND c.assigned_worker_id IS NULL
-          AND c.status = 'pending'
-        ORDER BY c.created_at ASC
-    """, (dept_category,))
-    pending_complaints = cursor.fetchall()
+        cursor.execute("""
+            SELECT c.id, c.title, c.status, c.verification_status,
+                   u.username, COALESCE(w.name, 'Unassigned') AS worker_name, c.created_at
+            FROM complaints c
+            JOIN users u ON c.user_id = u.id
+            LEFT JOIN workers w ON c.assigned_worker_id = w.id
+            WHERE c.department_id = %s AND c.assigned_worker_id IS NOT NULL
+            ORDER BY c.created_at DESC
+        """, (dept_id,))
+        assigned_complaints = cursor.fetchall()
 
-    cursor.execute("""
-        SELECT c.id, c.title, c.status, c.verification_status,
-               u.username, COALESCE(w.name, 'Unassigned') AS worker_name, c.created_at
-        FROM complaints c
-        JOIN users u ON c.user_id = u.id
-        LEFT JOIN workers w ON c.assigned_worker_id = w.id
-        WHERE c.department_id = %s AND c.assigned_worker_id IS NOT NULL
-        ORDER BY c.created_at DESC
-    """, (dept_id,))
-    assigned_complaints = cursor.fetchall()
+        cursor.execute("SELECT id, name, location FROM workers WHERE status='free' ORDER BY name")
+        free_workers = cursor.fetchall()
 
-    cursor.execute("SELECT id, name, location FROM workers WHERE status='free' ORDER BY name")
-    free_workers = cursor.fetchall()
+        cursor.execute("""
+            SELECT 
+                (SELECT COUNT(*) FROM complaints WHERE department_id=%s) as taken,
+                (SELECT COUNT(*) FROM complaints WHERE department_id=%s AND status='resolved') as resolved,
+                (SELECT COUNT(*) FROM complaints WHERE category=%s AND assigned_worker_id IS NULL AND status='pending') as bin
+        """, (dept_id, dept_id, dept_category))
+        res = cursor.fetchone()
+        total_taken = res[0]
+        total_resolved = res[1]
+        in_bin = res[2]
 
-    cursor.execute("""
-        SELECT 
-            (SELECT COUNT(*) FROM complaints WHERE department_id=%s) as taken,
-            (SELECT COUNT(*) FROM complaints WHERE department_id=%s AND status='resolved') as resolved,
-            (SELECT COUNT(*) FROM complaints WHERE category=%s AND assigned_worker_id IS NULL AND status='pending') as bin
-    """, (dept_id, dept_id, dept_category))
-    res = cursor.fetchone()
-    total_taken = res[0]
-    total_resolved = res[1]
-    in_bin = res[2]
-
-    cursor.close()
+        cursor.close()
+    except Exception as e:
+        flash("Database Error. Refreshing page...", "danger")
+        return redirect(url_for('index'))
 
     return render_template('dept_dashboard.html',
         dept_name=session['dept_name'],
@@ -506,21 +527,19 @@ def dept_assign_worker(complaint_id):
         flash("Please select a worker.", "warning")
         return redirect(url_for('dept_dashboard'))
 
-    cursor = mysql.connection.cursor()
     try:
+        cursor = get_db_cursor()
         cursor.execute(
             "UPDATE complaints SET assigned_worker_id=%s, department_id=%s, status='in_progress' WHERE id=%s",
             (worker_id, session['dept_id'], complaint_id)
         )
         cursor.execute("UPDATE workers SET status='busy' WHERE id=%s", (worker_id,))
         mysql.connection.commit()
+        cursor.close()
         flash("Worker assigned successfully! Complaint is now in progress.", "success")
     except Exception as e:
         mysql.connection.rollback()
-        print("Error assigning worker:", e)
-        flash("Error assigning worker.", "danger")
-    finally:
-        cursor.close()
+        flash("Error assigning worker. Database busy.", "danger")
 
     return redirect(url_for('dept_dashboard'))
 
@@ -573,7 +592,7 @@ def admin_dashboard():
         res = cursor.fetchone()
         cursor.close()
     except Exception as e:
-        flash("Database connection error. Please try again in 30 seconds.", "danger")
+        flash("Database Error. Admin portal is busy.", "danger")
         return redirect(url_for('index'))
 
     return render_template(
@@ -600,33 +619,36 @@ def admin_departments():
         password = generate_password_hash(request.form['password'])
         category = request.form['category']
 
-        cursor = mysql.connection.cursor()
         try:
+            cursor = get_db_cursor()
             cursor.execute(
                 "INSERT INTO departments (name, email, password, category) VALUES (%s,%s,%s,%s)",
                 (name, email, password, category)
             )
             mysql.connection.commit()
-            flash(f"Department '{name}' added successfully!", "success")
+            flash("Department added successfully!", "success")
+            cursor.close()
         except Exception as e:
             mysql.connection.rollback()
-            flash("Error: Department email may already exist.", "danger")
-        finally:
-            cursor.close()
+            flash("Error adding department. Email may already exist.", "danger")
         return redirect(url_for('admin_departments'))
 
-    cursor = mysql.connection.cursor()
-    cursor.execute("""
-        SELECT d.id, d.name, d.email, d.category,
-               COUNT(c.id) AS total,
-               SUM(CASE WHEN c.status='resolved' THEN 1 ELSE 0 END) AS resolved
-        FROM departments d
-        LEFT JOIN complaints c ON c.department_id = d.id
-        GROUP BY d.id
-        ORDER BY d.id DESC
-    """)
-    departments = cursor.fetchall()
-    cursor.close()
+    try:
+        cursor = get_db_cursor()
+        cursor.execute("""
+            SELECT d.id, d.name, d.email, d.category,
+                   COUNT(c.id) AS total,
+                   SUM(CASE WHEN c.status='resolved' THEN 1 ELSE 0 END) AS resolved
+            FROM departments d
+            LEFT JOIN complaints c ON c.department_id = d.id
+            GROUP BY d.id
+            ORDER BY d.id DESC
+        """)
+        departments = cursor.fetchall()
+        cursor.close()
+    except Exception as e:
+        flash("Could not load departments list.", "warning")
+        return redirect(url_for('admin_dashboard'))
 
     return render_template('admin_departments.html', departments=departments)
 
@@ -635,16 +657,15 @@ def admin_departments():
 def admin_delete_department(dept_id):
     if 'admin_logged_in' not in session:
         return redirect(url_for('admin_login'))
-    cursor = mysql.connection.cursor()
     try:
+        cursor = get_db_cursor()
         cursor.execute("DELETE FROM departments WHERE id=%s", (dept_id,))
         mysql.connection.commit()
-        flash("Department removed.", "info")
-    except:
-        mysql.connection.rollback()
-        flash("Cannot delete: department has active complaints.", "danger")
-    finally:
         cursor.close()
+        flash("Department removed.", "info")
+    except Exception as e:
+        mysql.connection.rollback()
+        flash("Cannot delete: department has active complaints or DB is busy.", "danger")
     return redirect(url_for('admin_departments'))
 
 
@@ -680,11 +701,12 @@ def admin_verify_complaint(complaint_id, action):
         flash("Please login as admin first.", "warning")
         return redirect(url_for('admin_login'))
 
-    cursor = mysql.connection.cursor()
     try:
+        cursor = get_db_cursor()
         cursor.execute("SELECT user_id FROM complaints WHERE id=%s", (complaint_id,))
         user = cursor.fetchone()
         if not user:
+            cursor.close()
             flash("Complaint not found!", "danger")
             return redirect(url_for('admin_complaints'))
         user_id = user[0]
@@ -699,16 +721,16 @@ def admin_verify_complaint(complaint_id, action):
                 "UPDATE complaints SET admin_verification='fake' WHERE id=%s", (complaint_id,)
             )
         else:
+            cursor.close()
             flash("Invalid action!", "warning")
             return redirect(url_for('admin_complaints'))
 
         mysql.connection.commit()
+        cursor.close()
         flash("Complaint updated successfully!", "success")
     except Exception as e:
         mysql.connection.rollback()
-        flash("Error updating complaint!", "danger")
-    finally:
-        cursor.close()
+        flash("Error updating complaint. DB busy.", "danger")
 
     # Redirect back to ticket detail so admin can see the result
     ref = request.referrer
@@ -747,26 +769,29 @@ def admin_add_workers():
         location = request.form['location']
         email    = request.form.get('email', '')
 
-        cursor = mysql.connection.cursor()
         try:
+            cursor = get_db_cursor()
             cursor.execute(
                 "INSERT INTO workers (name, password, location, email) VALUES (%s,%s,%s,%s)",
                 (name, password, location, email)
             )
             mysql.connection.commit()
             flash(f"Worker '{name}' added successfully!", "success")
+            cursor.close()
         except Exception as e:
             mysql.connection.rollback()
             flash("Error adding worker. Email may already exist.", "danger")
-        finally:
-            cursor.close()
         return redirect(url_for('admin_add_workers'))
 
     # Fetch all workers to display
-    cursor = mysql.connection.cursor()
-    cursor.execute("SELECT id, name, email, location, status FROM workers ORDER BY id DESC")
-    workers = cursor.fetchall()
-    cursor.close()
+    try:
+        cursor = get_db_cursor()
+        cursor.execute("SELECT id, name, email, location, status FROM workers ORDER BY id DESC")
+        workers = cursor.fetchall()
+        cursor.close()
+    except Exception as e:
+        flash("Could not load workers list.", "warning")
+        return redirect(url_for('admin_dashboard'))
 
     return render_template('admin_add_workers.html', workers=workers)
 
@@ -775,16 +800,15 @@ def admin_add_workers():
 def admin_delete_worker(worker_id):
     if 'admin_logged_in' not in session:
         return redirect(url_for('admin_login'))
-    cursor = mysql.connection.cursor()
     try:
+        cursor = get_db_cursor()
         cursor.execute("DELETE FROM workers WHERE id=%s", (worker_id,))
         mysql.connection.commit()
-        flash("Worker removed.", "info")
-    except:
-        mysql.connection.rollback()
-        flash("Cannot remove worker: has active assignments.", "danger")
-    finally:
         cursor.close()
+        flash("Worker removed.", "info")
+    except Exception as e:
+        mysql.connection.rollback()
+        flash("Cannot remove worker: has active assignments or DB busy.", "danger")
     return redirect(url_for('admin_add_workers'))
 
 
@@ -794,10 +818,14 @@ def admin_leaderboard():
         flash("Please login as admin first.", "warning")
         return redirect(url_for('admin_login'))
 
-    cursor = mysql.connection.cursor()
-    cursor.execute("SELECT username, points FROM users ORDER BY points DESC")
-    leaderboard = cursor.fetchall()
-    cursor.close()
+    try:
+        cursor = get_db_cursor()
+        cursor.execute("SELECT username, points FROM users ORDER BY points DESC")
+        leaderboard = cursor.fetchall()
+        cursor.close()
+    except Exception as e:
+        flash("Could not load leaderboard.", "warning")
+        return redirect(url_for('admin_dashboard'))
 
     return render_template('leaderboard.html', leaderboard=leaderboard)
 
@@ -828,13 +856,17 @@ def worker_dashboard():
         flash("Please login as worker first.", "warning")
         return redirect(url_for('login'))
 
-    cursor = mysql.connection.cursor()
-    cursor.execute(
-        "SELECT * FROM complaints WHERE assigned_worker_id=%s AND status IN ('in_progress','pending')",
-        (session['worker_id'],)
-    )
-    assigned_complaints = cursor.fetchall()
-    cursor.close()
+    try:
+        cursor = get_db_cursor()
+        cursor.execute(
+            "SELECT * FROM complaints WHERE assigned_worker_id=%s AND status IN ('in_progress','pending')",
+            (session['worker_id'],)
+        )
+        assigned_complaints = cursor.fetchall()
+        cursor.close()
+    except Exception as e:
+        flash("Database connection problem. Refreshing...", "warning")
+        return redirect(url_for('worker_dash'))
     return render_template('worker_dashboard.html', username=session['username'], complaints=assigned_complaints)
 
 
@@ -850,8 +882,8 @@ def update_task(complaint_id):
             flash("Please upload a valid image.", "warning")
             return redirect(url_for('update_task', complaint_id=complaint_id))
 
-        cursor = mysql.connection.cursor()
         try:
+            cursor = get_db_cursor()
             cursor.execute(
                 "UPDATE complaints SET resolved_image=%s, status='resolved' "
                 "WHERE id=%s AND assigned_worker_id=%s",
@@ -859,11 +891,10 @@ def update_task(complaint_id):
             )
             mysql.connection.commit()
             flash("Complaint marked as resolved!", "success")
+            cursor.close()
         except Exception as e:
             mysql.connection.rollback()
-            flash("Error updating task.", "danger")
-        finally:
-            cursor.close()
+            flash("Error updating task. DB is busy.", "danger")
         return redirect(url_for('worker_dash'))
 
     return render_template('update_task.html', complaint_id=complaint_id)
@@ -875,16 +906,20 @@ def worker_assigned_tasks():
         flash("Please login as worker first.", "warning")
         return redirect(url_for('login'))
 
-    cursor = mysql.connection.cursor()
-    cursor.execute("""
-        SELECT c.id, c.title, u.username, c.status, c.verification_status
-        FROM complaints c
-        JOIN users u ON c.user_id = u.id
-        WHERE c.assigned_worker_id = %s
-        ORDER BY c.created_at DESC
-    """, (session['worker_id'],))
-    tasks = cursor.fetchall()
-    cursor.close()
+    try:
+        cursor = get_db_cursor()
+        cursor.execute("""
+            SELECT c.id, c.title, u.username, c.status, c.verification_status
+            FROM complaints c
+            JOIN users u ON c.user_id = u.id
+            WHERE c.assigned_worker_id = %s
+            ORDER BY c.created_at DESC
+        """, (session['worker_id'],))
+        tasks = cursor.fetchall()
+        cursor.close()
+    except Exception as e:
+        flash("Could not load tasks.", "warning")
+        return redirect(url_for('worker_dash'))
 
     return render_template('worker_assigned_tasks.html', tasks=tasks)
 
@@ -898,20 +933,23 @@ def ticket_detail(complaint_id):
         return redirect(url_for('login'))
 
     user_id = session['user_id']
-    cursor  = mysql.connection.cursor()
+    try:
+        cursor = get_db_cursor()
+        cursor.execute("""
+            SELECT c.*,
+                   COALESCE(d.name, 'Unassigned') AS dept_name,
+                   COALESCE(w.name, 'Not assigned yet') AS worker_name
+            FROM complaints c
+            LEFT JOIN departments d ON c.department_id = d.id
+            LEFT JOIN workers w ON c.assigned_worker_id = w.id
+            WHERE c.id = %s AND c.user_id = %s
+        """, (complaint_id, user_id))
 
-    cursor.execute("""
-        SELECT c.*,
-               COALESCE(d.name, 'Unassigned') AS dept_name,
-               COALESCE(w.name, 'Not assigned yet') AS worker_name
-        FROM complaints c
-        LEFT JOIN departments d ON c.department_id = d.id
-        LEFT JOIN workers w ON c.assigned_worker_id = w.id
-        WHERE c.id = %s AND c.user_id = %s
-    """, (complaint_id, user_id))
-
-    complaint = cursor.fetchone()
-    cursor.close()
+        complaint = cursor.fetchone()
+        cursor.close()
+    except Exception as e:
+        flash("Could not load ticket details.", "warning")
+        return redirect(url_for('my_complaints'))
 
     if not complaint:
         flash("Ticket not found!", "danger")
@@ -934,20 +972,24 @@ def admin_ticket_view(complaint_id):
         flash("Please login as admin first.", "warning")
         return redirect(url_for('admin_login'))
 
-    cursor = mysql.connection.cursor()
-    cursor.execute("""
-        SELECT c.*,
-               COALESCE(d.name, 'Unassigned') AS dept_name,
-               COALESCE(w.name, 'Not assigned yet') AS worker_name,
-               u.username AS reporter
-        FROM complaints c
-        LEFT JOIN departments d ON c.department_id = d.id
-        LEFT JOIN workers w ON c.assigned_worker_id = w.id
-        JOIN users u ON c.user_id = u.id
-        WHERE c.id = %s
-    """, (complaint_id,))
-    complaint = cursor.fetchone()
-    cursor.close()
+    try:
+        cursor = get_db_cursor()
+        cursor.execute("""
+            SELECT c.*,
+                   COALESCE(d.name, 'Unassigned') AS dept_name,
+                   COALESCE(w.name, 'Not assigned yet') AS worker_name,
+                   u.username AS reporter
+            FROM complaints c
+            LEFT JOIN departments d ON c.department_id = d.id
+            LEFT JOIN workers w ON c.assigned_worker_id = w.id
+            JOIN users u ON c.user_id = u.id
+            WHERE c.id = %s
+        """, (complaint_id,))
+        complaint = cursor.fetchone()
+        cursor.close()
+    except Exception as e:
+        flash("Could not load ticket.", "warning")
+        return redirect(url_for('admin_complaints'))
 
     if not complaint:
         flash("Ticket not found!", "danger")
@@ -971,14 +1013,17 @@ def api_admin_complaints_locations():
     if 'admin_logged_in' not in session:
         return {"error": "Unauthorized"}, 403
     
-    cursor = mysql.connection.cursor()
-    cursor.execute("""
-        SELECT id, title, category, status, latitude, longitude 
-        FROM complaints 
-        WHERE latitude IS NOT NULL AND longitude IS NOT NULL
-    """)
-    complaints = cursor.fetchall()
-    cursor.close()
+    try:
+        cursor = get_db_cursor()
+        cursor.execute("""
+            SELECT id, title, category, status, latitude, longitude 
+            FROM complaints 
+            WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+        """)
+        complaints = cursor.fetchall()
+        cursor.close()
+    except Exception as e:
+        return {"complaints": []}
     
     data = []
     for c in complaints:
@@ -1000,30 +1045,37 @@ def dept_ticket_view(complaint_id):
         flash("Please login as department first.", "warning")
         return redirect(url_for('dept_login'))
 
-    cursor = mysql.connection.cursor()
-    cursor.execute("""
-        SELECT c.*,
-               COALESCE(d.name, 'Unassigned') AS dept_name,
-               COALESCE(w.name, 'Not assigned yet') AS worker_name,
-               u.username AS reporter
-        FROM complaints c
-        LEFT JOIN departments d ON c.department_id = d.id
-        LEFT JOIN workers w ON c.assigned_worker_id = w.id
-        JOIN users u ON c.user_id = u.id
-        WHERE c.id = %s
-    """, (complaint_id,))
-    complaint = cursor.fetchone()
-    cursor.close()
+    try:
+        cursor = get_db_cursor()
+        cursor.execute("""
+            SELECT c.*,
+                   COALESCE(d.name, 'Unassigned') AS dept_name,
+                   COALESCE(w.name, 'Not assigned yet') AS worker_name,
+                   u.username AS reporter
+            FROM complaints c
+            LEFT JOIN departments d ON c.department_id = d.id
+            LEFT JOIN workers w ON c.assigned_worker_id = w.id
+            JOIN users u ON c.user_id = u.id
+            WHERE c.id = %s
+        """, (complaint_id,))
+        complaint = cursor.fetchone()
+        cursor.close()
+    except Exception as e:
+        flash("Could not load ticket details.", "warning")
+        return redirect(url_for('dept_dashboard'))
 
     if not complaint:
         flash("Ticket not found!", "danger")
         return redirect(url_for('dept_dashboard'))
 
     # Free workers for assign
-    cursor = mysql.connection.cursor()
-    cursor.execute("SELECT id, name, location FROM workers WHERE status='free' ORDER BY name")
-    free_workers = cursor.fetchall()
-    cursor.close()
+    try:
+        cursor = get_db_cursor()
+        cursor.execute("SELECT id, name, location FROM workers WHERE status='free' ORDER BY name")
+        free_workers = cursor.fetchall()
+        cursor.close()
+    except Exception as e:
+        free_workers = []
 
     return render_template('dept_ticket_view.html',
         complaint=complaint,
