@@ -141,12 +141,11 @@ def login():
                 else:
                     flash("Invalid worker credentials!", "danger")
                     return redirect(url_for('login'))
+            else:
+                flash("Please select a role!", "warning")
+                return redirect(url_for('login'))
         except Exception as e:
             flash("Login service currently busy. Please try again.", "warning")
-            return redirect(url_for('login'))
-
-        else:
-            flash("Please select a role!", "warning")
             return redirect(url_for('login'))
 
     return render_template('user_login.html')
@@ -419,34 +418,34 @@ def dept_login():
         email    = request.form['email']
         password = request.form['password']
 
-    try:
-        cursor = get_db_cursor()
-        cursor.execute(
-            "SELECT id, name, email, password, category FROM departments WHERE email=%s", (email,)
-        )
-        dept = cursor.fetchone()
-        cursor.close()
-    except Exception as e:
-        flash("Database busy. Please try again soon.", "warning")
-        return redirect(url_for('index'))
+        try:
+            cursor = get_db_cursor()
+            cursor.execute(
+                "SELECT id, name, email, password, category FROM departments WHERE email=%s", (email,)
+            )
+            dept = cursor.fetchone()
+            cursor.close()
 
-        # Support both hashed passwords (added via admin form) and plain (seeded via SQL)
-        password_ok = False
-        if dept:
-            try:
-                password_ok = check_password_hash(dept[3], password)
-            except Exception:
-                password_ok = (dept[3] == password)
+            # Support both hashed passwords (added via admin form) and plain (seeded via SQL)
+            password_ok = False
+            if dept:
+                try:
+                    password_ok = check_password_hash(dept[3], password)
+                except Exception:
+                    password_ok = (dept[3] == password)
 
-        if dept and password_ok:
-            session['dept_id']       = dept[0]
-            session['dept_name']     = dept[1]
-            session['dept_category'] = dept[4]
-            session['role']          = 'department'
-            flash(f"Welcome, {dept[1]}!", "success")
-            return redirect(url_for('dept_dashboard'))
-        else:
-            flash("Invalid department credentials!", "danger")
+            if dept and password_ok:
+                session['dept_id']       = dept[0]
+                session['dept_name']     = dept[1]
+                session['dept_category'] = dept[4]
+                session['role']          = 'department'
+                flash(f"Welcome, {dept[1]}!", "success")
+                return redirect(url_for('dept_dashboard'))
+            else:
+                flash("Invalid department credentials!", "danger")
+                return redirect(url_for('dept_login'))
+        except Exception as e:
+            flash("Database busy. Please try again soon.", "warning")
             return redirect(url_for('dept_login'))
 
     return render_template('dept_login.html')
