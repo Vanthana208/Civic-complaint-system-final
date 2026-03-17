@@ -489,9 +489,10 @@ def dept_dashboard():
 
         cursor.execute("""
             SELECT 
-                (SELECT COUNT(*) FROM complaints WHERE department_id=%s) as taken,
-                (SELECT COUNT(*) FROM complaints WHERE department_id=%s AND status='resolved') as resolved,
-                (SELECT COUNT(*) FROM complaints WHERE category=%s AND assigned_worker_id IS NULL AND status='pending') as bin
+                COUNT(CASE WHEN department_id=%s THEN 1 END) as taken,
+                COUNT(CASE WHEN department_id=%s AND status='resolved' THEN 1 END) as resolved,
+                COUNT(CASE WHEN category=%s AND assigned_worker_id IS NULL AND status='pending' THEN 1 END) as bin
+            FROM complaints
         """, (dept_id, dept_id, dept_category))
         res = cursor.fetchone()
         total_taken = res[0]
@@ -581,12 +582,13 @@ def admin_dashboard():
         cursor = get_db_cursor()
         cursor.execute("""
             SELECT 
-                (SELECT COUNT(*) FROM complaints) as total,
-                (SELECT COUNT(*) FROM complaints WHERE status='resolved') as resolved,
-                (SELECT COUNT(*) FROM complaints WHERE verification_status='verified') as verified,
-                (SELECT COUNT(*) FROM complaints WHERE assigned_worker_id IS NULL AND status='pending') as in_bin,
+                COUNT(*) as total,
+                SUM(CASE WHEN status='resolved' THEN 1 ELSE 0 END) as resolved,
+                SUM(CASE WHEN verification_status='verified' THEN 1 ELSE 0 END) as verified,
+                SUM(CASE WHEN assigned_worker_id IS NULL AND status='pending' THEN 1 ELSE 0 END) as in_bin,
                 (SELECT COUNT(*) FROM users) as users,
                 (SELECT COUNT(*) FROM workers) as workers
+            FROM complaints
         """)
         res = cursor.fetchone()
         cursor.close()
