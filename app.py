@@ -1040,43 +1040,61 @@ def api_analytics_complaints():
     if 'role' not in session:
         return {"error": "Unauthorized"}, 403
     
-    dept_filter = ""
-    user_filter = ""
-    params = []
-    if session.get('role') == 'department':
-        dept_filter = " AND department_id = %s"
-        params = [session.get('dept_id')]
-    elif session.get('role') == 'user':
-        user_filter = " AND user_id = %s"
-        params = [session.get('user_id')]
+    # Base filters
+    dept_id = session.get('dept_id')
+    user_id = session.get('user_id')
+    role = session.get('role')
+
+    trend_filter = ""
+    trend_params = []
     
-    cursor = mysql.connection.cursor()
+    cat_status_filter = ""
+    cat_status_params = []
+
+    if role == 'department':
+        trend_filter = " AND department_id = %s"
+        trend_params = [dept_id]
+        cat_status_filter = " AND department_id = %s"
+        cat_status_params = [dept_id]
+    elif role == 'user':
+        trend_filter = " AND user_id = %s"
+        trend_params = [user_id]
+        # Users see global categories/status or just their own? 
+        # Usually users see global stats in public dashboards, 
+        # but if we want per-user stats:
+        cat_status_filter = " AND user_id = %s"
+        cat_status_params = [user_id]
     
-    # 1. Trend: Complaints per day (last 30 days)
-    cursor.execute(f"""
-        SELECT DATE(created_at) as date, COUNT(*) as count 
-        FROM complaints 
-        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) {dept_filter} {user_filter}
-        GROUP BY DATE(created_at)
-        ORDER BY date
-    """, params)
-    trend_data = [{"date": str(row[0]), "count": row[1]} for row in cursor.fetchall()]
-    
-    # 2. Categories breakdown
-    cursor.execute(f"SELECT category, COUNT(*) FROM complaints WHERE 1=1 {dept_filter} GROUP BY category", params)
-    category_data = {row[0]: row[1] for row in cursor.fetchall()}
-    
-    # 3. Status breakdown
-    cursor.execute(f"SELECT status, COUNT(*) FROM complaints WHERE 1=1 {dept_filter} GROUP BY status", params)
-    status_data = {row[0]: row[1] for row in cursor.fetchall()}
-    
-    cursor.close()
-    
-    return {
-        "trend": trend_data,
-        "categories": category_data,
-        "status": status_data
-    }
+    try:
+        cursor = get_db_cursor()
+        
+        # 1. Trend: Complaints per day (last 30 days)
+        cursor.execute(f"""
+            SELECT DATE(created_at) as date, COUNT(*) as count 
+            FROM complaints 
+            WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) {trend_filter}
+            GROUP BY DATE(created_at)
+            ORDER BY date
+        """, trend_params)
+        trend_data = [{"date": str(row[0]), "count": row[1]} for row in cursor.fetchall()]
+        
+        # 2. Categories breakdown
+        cursor.execute(f"SELECT category, COUNT(*) FROM complaints WHERE 1=1 {cat_status_filter} GROUP BY category", cat_status_params)
+        category_data = {row[0]: row[1] for row in cursor.fetchall()}
+        
+        # 3. Status breakdown
+        cursor.execute(f"SELECT status, COUNT(*) FROM complaints WHERE 1=1 {cat_status_filter} GROUP BY status", cat_status_params)
+        status_data = {row[0]: row[1] for row in cursor.fetchall()}
+        
+        cursor.close()
+        
+        return {
+            "trend": trend_data,
+            "categories": category_data,
+            "status": status_data
+        }
+    except Exception as e:
+        return {"error": str(e)}, 500
 
 # ================== RUN APP ==================
 if __name__ == '__main__':
