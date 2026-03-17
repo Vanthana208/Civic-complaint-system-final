@@ -460,19 +460,16 @@ def dept_dashboard():
     cursor.execute("SELECT id, name, location FROM workers WHERE status='free' ORDER BY name")
     free_workers = cursor.fetchall()
 
-    cursor.execute("SELECT COUNT(*) FROM complaints WHERE department_id=%s", (dept_id,))
-    total_taken = cursor.fetchone()[0]
-
-    cursor.execute(
-        "SELECT COUNT(*) FROM complaints WHERE department_id=%s AND status='resolved'", (dept_id,)
-    )
-    total_resolved = cursor.fetchone()[0]
-
     cursor.execute("""
-        SELECT COUNT(*) FROM complaints
-        WHERE category=%s AND assigned_worker_id IS NULL AND status='pending'
-    """, (dept_category,))
-    in_bin = cursor.fetchone()[0]
+        SELECT 
+            (SELECT COUNT(*) FROM complaints WHERE department_id=%s) as taken,
+            (SELECT COUNT(*) FROM complaints WHERE department_id=%s AND status='resolved') as resolved,
+            (SELECT COUNT(*) FROM complaints WHERE category=%s AND assigned_worker_id IS NULL AND status='pending') as bin
+    """, (dept_id, dept_id, dept_category))
+    res = cursor.fetchone()
+    total_taken = res[0]
+    total_resolved = res[1]
+    in_bin = res[2]
 
     cursor.close()
 
@@ -553,36 +550,26 @@ def admin_dashboard():
         return redirect(url_for('admin_login'))
 
     cursor = mysql.connection.cursor()
-    cursor.execute("SELECT COUNT(*) FROM complaints")
-    total_complaints = cursor.fetchone()[0]
-
-    cursor.execute("SELECT COUNT(*) FROM complaints WHERE status='resolved'")
-    resolved_complaints = cursor.fetchone()[0]
-
-    cursor.execute("SELECT COUNT(*) FROM complaints WHERE verification_status='verified'")
-    verified_complaints = cursor.fetchone()[0]
-
-    cursor.execute(
-        "SELECT COUNT(*) FROM complaints WHERE assigned_worker_id IS NULL AND status='pending'"
-    )
-    in_bin = cursor.fetchone()[0]
-
-    cursor.execute("SELECT COUNT(*) FROM users")
-    total_users = cursor.fetchone()[0]
-
-    cursor.execute("SELECT COUNT(*) FROM workers")
-    total_workers = cursor.fetchone()[0]
-
+    cursor.execute("""
+        SELECT 
+            (SELECT COUNT(*) FROM complaints) as total,
+            (SELECT COUNT(*) FROM complaints WHERE status='resolved') as resolved,
+            (SELECT COUNT(*) FROM complaints WHERE verification_status='verified') as verified,
+            (SELECT COUNT(*) FROM complaints WHERE assigned_worker_id IS NULL AND status='pending') as in_bin,
+            (SELECT COUNT(*) FROM users) as users,
+            (SELECT COUNT(*) FROM workers) as workers
+    """)
+    res = cursor.fetchone()
     cursor.close()
 
     return render_template(
         'admin_dashboard.html',
-        total_complaints=total_complaints,
-        resolved_complaints=resolved_complaints,
-        verified_complaints=verified_complaints,
-        in_bin=in_bin,
-        total_users=total_users,
-        total_workers=total_workers
+        total_complaints=res[0],
+        resolved_complaints=res[1],
+        verified_complaints=res[2],
+        in_bin=res[3],
+        total_users=res[4],
+        total_workers=res[5]
     )
 
 
