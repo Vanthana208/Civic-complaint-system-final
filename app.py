@@ -559,18 +559,22 @@ def admin_dashboard():
         flash("Please login as admin first.", "warning")
         return redirect(url_for('admin_login'))
 
-    cursor = mysql.connection.cursor()
-    cursor.execute("""
-        SELECT 
-            (SELECT COUNT(*) FROM complaints) as total,
-            (SELECT COUNT(*) FROM complaints WHERE status='resolved') as resolved,
-            (SELECT COUNT(*) FROM complaints WHERE verification_status='verified') as verified,
-            (SELECT COUNT(*) FROM complaints WHERE assigned_worker_id IS NULL AND status='pending') as in_bin,
-            (SELECT COUNT(*) FROM users) as users,
-            (SELECT COUNT(*) FROM workers) as workers
-    """)
-    res = cursor.fetchone()
-    cursor.close()
+    try:
+        cursor = get_db_cursor()
+        cursor.execute("""
+            SELECT 
+                (SELECT COUNT(*) FROM complaints) as total,
+                (SELECT COUNT(*) FROM complaints WHERE status='resolved') as resolved,
+                (SELECT COUNT(*) FROM complaints WHERE verification_status='verified') as verified,
+                (SELECT COUNT(*) FROM complaints WHERE assigned_worker_id IS NULL AND status='pending') as in_bin,
+                (SELECT COUNT(*) FROM users) as users,
+                (SELECT COUNT(*) FROM workers) as workers
+        """)
+        res = cursor.fetchone()
+        cursor.close()
+    except Exception as e:
+        flash("Database connection error. Please try again in 30 seconds.", "danger")
+        return redirect(url_for('index'))
 
     return render_template(
         'admin_dashboard.html',
@@ -650,18 +654,22 @@ def admin_complaints():
         flash("Please login as admin first.", "warning")
         return redirect(url_for('admin_login'))
 
-    cursor = mysql.connection.cursor()
-    cursor.execute("""
-        SELECT c.id, c.title, u.username, c.status, c.verification_status,
-               c.resolved_image, c.admin_verification, c.user_id,
-               c.category, COALESCE(d.name, 'Unassigned') AS dept_name
-        FROM complaints c
-        JOIN users u ON c.user_id = u.id
-        LEFT JOIN departments d ON c.department_id = d.id
-        ORDER BY c.created_at DESC
-    """)
-    complaints = cursor.fetchall()
-    cursor.close()
+    try:
+        cursor = get_db_cursor()
+        cursor.execute("""
+            SELECT c.id, c.title, u.username, c.status, c.verification_status,
+                   c.resolved_image, c.admin_verification, c.user_id,
+                   c.category, COALESCE(d.name, 'Unassigned') AS dept_name
+            FROM complaints c
+            JOIN users u ON c.user_id = u.id
+            LEFT JOIN departments d ON c.department_id = d.id
+            ORDER BY c.created_at DESC
+        """)
+        complaints = cursor.fetchall()
+        cursor.close()
+    except Exception as e:
+        flash("Could not load complaints. Database is currently busy.", "warning")
+        return redirect(url_for('admin_dashboard'))
 
     return render_template('admin_complaints.html', complaints=complaints)
 
@@ -715,11 +723,14 @@ def admin_users():
         flash("Please login as admin first.", "warning")
         return redirect(url_for('admin_login'))
 
-    cursor = mysql.connection.cursor()
-    # FIX: query returns exactly 4 columns to match the template
-    cursor.execute("SELECT id, username, email, points FROM users ORDER BY id DESC")
-    users = cursor.fetchall()
-    cursor.close()
+    try:
+        cursor = get_db_cursor()
+        cursor.execute("SELECT id, username, email, points FROM users ORDER BY id DESC")
+        users = cursor.fetchall()
+        cursor.close()
+    except Exception as e:
+        flash("Could not load users list.", "warning")
+        return redirect(url_for('admin_dashboard'))
 
     return render_template('admin_users.html', users=users)
 
