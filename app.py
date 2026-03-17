@@ -33,9 +33,18 @@ app.config['MYSQL_PORT']            = int(os.getenv('MYSQL_PORT', 3306))
 app.config['MYSQL_USER']            = os.getenv('MYSQL_USER', 'root')
 app.config['MYSQL_PASSWORD']        = os.getenv('MYSQL_PASSWORD', '')
 app.config['MYSQL_DB']              = os.getenv('MYSQL_DB', 'e_complaint')
-app.config['MYSQL_CONNECT_TIMEOUT']  = 10  # Seconds
+app.config['MYSQL_CONNECT_TIMEOUT']  = 30  # Increased for slow remote handshakes
+# Note: If your host requires SSL, uncomment or add these env vars
+# app.config['MYSQL_CUSTOM_OPTIONS'] = {'ssl': {'ca': '/path/to/ca.pem'}} 
 
 mysql = MySQL(app)
+
+def get_db_cursor():
+    try:
+        return mysql.connection.cursor()
+    except Exception as e:
+        print(f"CRITICAL DB CONNECTION ERROR: {e}")
+        raise e
 
 
 # ================== INJECT LANG INTO ALL TEMPLATES ==================
